@@ -1,0 +1,105 @@
+import pandas as pd
+
+
+def emission_paved_roads(pm: float, silt_loading: float, weight: float) -> float:
+    """_summary_
+
+    Args:
+        pm (float): _description_
+        silt_loading (float): _description_
+        weight (float): _description_
+
+    Returns:
+        float: _description_
+    """
+
+    pm_options = {'2.5': 0.15 ,
+                  '10': 0.62,
+                  '15': 0.77,
+                  '30': 3.23}
+    
+    k = pm_options[str(pm)]
+
+    emission_factor = k * pow(silt_loading, 0.91) * pow(weight, 1.02)
+
+    return emission_factor
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+def emission_unpaved_industrial(pm: float, silt_fraction: float, weight: float) -> float:
+    """_summary_
+
+    Args:
+        pm (float): _description_
+        silt_fraction (float): _description_
+        weight (float): _description_
+
+    Returns:
+        float: _description_
+    """
+
+    constants = pd.DataFrame(data = {'k': [0.15, 1.5, 4.9],
+                                     'a': [0.9, 0.9, 0.7],
+                                     'b': [0.45, 0.45, 0.45]},
+                             index = [2.5, 10, 30]
+    )
+
+    k = constants.loc[pm, 'k']
+    a = constants.loc[pm, 'a']
+    b = constants.loc[pm, 'b'] 
+
+
+    emission_factor = k * pow(silt_fraction, a) * pow(weight, b)
+
+    return emission_factor
+
+
+
+
+
+
+
+
+
+
+
+def emission_unpaved_industrial(pm: float, silt_fraction: float, speed: float, moisture: float) -> float:
+    """_summary_
+
+    Args:
+        pm (float): _description_
+        silt_fraction (float): _description_
+        speed (float): _description_
+        moisture (float): _description_
+
+    Returns:
+        float: _description_
+    """
+
+    constants = pd.DataFrame(data = {'k': [0.18, 1.8, 6.0],
+                                     'a': [1.0, 1.0, 1.0],
+                                     'c': [0.2, 0.2, 0.3],
+                                     'd': [0.5, 0.5, 0.3],
+                                     'wear_emission': [0.00036, 0.00047, 0.00047]},
+                             index = [2.5, 10, 30]
+    )
+
+    k = constants.loc[pm, 'k']
+    a = constants.loc[pm, 'a']
+    c = constants.loc[pm, 'c'] 
+    d = constants.loc[pm, 'd']
+    wear_emission = constants.loc[pm, 'wear_emission']
+    
+
+    emission_factor = k * ((silt_fraction, a) * pow(speed, d)) / pow(moisture, c)
