@@ -2,15 +2,20 @@ import pandas as pd
 
 
 def emission_paved_roads(pm: float, silt_loading: float, weight: float) -> float:
-    """_summary_
+    """Calculates the particulate matter emission factor for 4 size classes (PM2.5, PM10, PM15 and PM30) following 
+    EPA's "AP-42: 13.2.1 Paved Roads".
 
     Args:
-        pm (float): _description_
-        silt_loading (float): _description_
-        weight (float): _description_
+        pm (float): particulate matter size class to be estimated 
+            There are 4 valid options (2.5, 10, 15 and 30)
+
+        silt_loading (float):
+            Maximum statistical quality within the range of 0,03 - 400 g/m²
+
+        weight (float): average weight (tons) of the vehicles traveling the road
 
     Returns:
-        float: _description_
+        float: emission factor for the chosen particulate matter size class
     """
 
     pm_options = {'2.5': 0.15 ,
@@ -24,7 +29,7 @@ def emission_paved_roads(pm: float, silt_loading: float, weight: float) -> float
 
     return emission_factor
 
-
+print(emission_paved_roads(2.5, 1, 25))
 
 
 
@@ -41,8 +46,11 @@ def emission_unpaved_industrial(pm: float, silt_fraction: float, weight: float) 
     """_summary_
 
     Args:
-        pm (float): _description_
-        silt_fraction (float): _description_
+        pm (float): particulate matter size class to be estimated 
+            There are 3 valid options (2.5, 10 and 30)
+
+        silt_fraction (float): surface material silt content (%)
+
         weight (float): _description_
 
     Returns:
@@ -60,12 +68,12 @@ def emission_unpaved_industrial(pm: float, silt_fraction: float, weight: float) 
     b = constants.loc[pm, 'b'] 
 
 
-    emission_factor = k * pow(silt_fraction, a) * pow(weight, b)
+    emission_factor = k * pow(silt_fraction / 12, a) * pow(weight / 3, b)
 
     return emission_factor
 
 
-
+print(emission_unpaved_industrial(2.5, 1, 25))
 
 
 
@@ -78,13 +86,17 @@ def emission_unpaved_industrial(pm: float, silt_fraction: float, speed: float, m
     """_summary_
 
     Args:
-        pm (float): _description_
-        silt_fraction (float): _description_
-        speed (float): _description_
-        moisture (float): _description_
+        pm (float): particulate matter size class to be estimated 
+            There are 3 valid options (2.5, 10 and 30)
+
+        silt_fraction (float): surface material silt content (%)
+
+        speed (float): mean vehicle speed (mph)
+
+        moisture (float): surface material moisture content (%)
 
     Returns:
-        float: _description_
+        float: emission factor for unpaved industrial roads (lb/VMT)
     """
 
     constants = pd.DataFrame(data = {'k': [0.18, 1.8, 6.0],
@@ -102,4 +114,7 @@ def emission_unpaved_industrial(pm: float, silt_fraction: float, speed: float, m
     wear_emission = constants.loc[pm, 'wear_emission']
     
 
-    emission_factor = k * ((silt_fraction, a) * pow(speed, d)) / pow(moisture, c)
+    emission_factor = k * (((silt_fraction, a) * pow(speed, d)) / pow(moisture, c)) - wear_emission
+
+    return emission_factor
+
