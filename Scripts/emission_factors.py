@@ -1,5 +1,6 @@
 import pandas as pd
 
+"EMISSION FACTOR FOR PAVED ROADS"
 
 def emission_paved_roads(pm: float, silt_loading: float, weight: float) -> float:
     """Calculates the particulate matter emission factor for 4 size classes (PM2.5, PM10, PM15 and PM30) following 
@@ -34,13 +35,8 @@ print(emission_paved_roads(2.5, 1, 25))
 
 
 
-
-
-
-
-
-
-
+#---------------------------------------------------------------------------------
+"EMISSION FACTOR FOR UNPAVED INDUSTRIAL ROADS"
 
 def emission_unpaved_industrial(pm: float, silt_fraction: float, weight: float) -> float:
     """_summary_
@@ -77,13 +73,16 @@ print(emission_unpaved_industrial(2.5, 1, 25))
 
 
 
+#--------------------------------------------------------------------------------------------
+"EMISSION FACTOR FOR UNPAVED OPEN ACCESS PUBLIC ROADS"
 
 
-
-
-
-def emission_unpaved_industrial(pm: float, silt_fraction: float, speed: float, moisture: float) -> float:
-    """_summary_
+def emission_unpaved_public(pm: float, silt_fraction: float, speed: float, moisture: float) -> float:
+    """This function takes arguments refering to PM size class, silt fraction of the soil,
+    vehicle speed on the road and soil moisture and returns the emission factor for this
+    road category.
+       The equation and constants used follow EPA AP-42 guidelines for Unpaved Open Access Public Roads.
+    
 
     Args:
         pm (float): particulate matter size class to be estimated 
@@ -118,3 +117,54 @@ def emission_unpaved_industrial(pm: float, silt_fraction: float, speed: float, m
 
     return emission_factor
 
+
+
+#--------------------------------------------------------------------------------------------------
+"HOURLY RAINFALL CORRECTION FACTOR FOR PAVED ROADS"
+
+def paved_rainfall_correction(emission_factor:float, rainfall:int, total_period:int) -> float:
+    """This function 
+    
+       The equation and constants used follow EPA AP-42 guidelines for Paved Roads.
+    
+
+    Args:
+        emission_factor: calculated emission factor for paved roads (lb/VMT)
+            
+        rainfall: total number of hours with over 1 inch of rainfall (hours)
+            
+        total_period: total period considered (hours)
+
+    Returns:
+        float: corrected emission factor for unpaved roads (lb/VMT)
+    """
+    
+    corrected_factor = emission_factor * (1 - (1.2 * rainfall / total_period))
+    
+    return corrected_factor
+
+
+
+#------------------------------------------------------------------------------------------------------
+"HOURLY RAINFALL CORRECTION FACTOR FOR UNPAVED ROADS"
+
+def unpaved_rainfall_correction(emission_factor:float, rainfall:int, total_period:int) -> float:
+    """This function 
+    
+       The equation and constants used follow EPA AP-42 guidelines for Unpaved Roads.
+    
+
+    Args:
+        emission_factor: calculated emission factor for unpaved roads (lb/VMT)
+            
+        rainfall: total number of hours with over 1 inch of rainfall (hours)
+            
+        total_period: total period considered (hours)
+
+    Returns:
+        float: corrected emission factor for unpaved roads (lb/VMT)
+    """
+    
+    corrected_factor = emission_factor * (1 - (rainfall / total_period))
+    
+    return corrected_factor
