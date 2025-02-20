@@ -155,16 +155,24 @@ def unpaved_rainfall_correction(emission_factor:float, rainfall:int, total_perio
     
 
     Args:
-        emission_factor: calculated emission factor for unpaved roads (lb/VMT)
+        emission_factor: calculated emission factor for unpaved roads
             
         rainfall: total number of hours with over 1 inch of rainfall (hours)
             
         total_period: total period considered (hours)
 
     Returns:
-        float: corrected emission factor for unpaved roads (lb/VMT)
+        float: corrected emission factor for unpaved roads 
     """
     
     corrected_factor = emission_factor * (1 - (rainfall / total_period))
     
     return corrected_factor
+
+
+
+#----------------------------------------------------------------------------------------------
+"lb/VMT to g/VKT CONVERSION"
+
+def lbvmt_to_gvkt(lbvmt:float)->float:
+    return lbvmt * 281.9
