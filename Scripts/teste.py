@@ -36,8 +36,8 @@ gdf_cut.loc[:,'datetime'] = gdf_cut.loc[:,'timestamp'].apply(datetime.fromtimest
 
 #%%Filtragem de flow=Nan
 gdf_filtered = gdf_cut.dropna(axis=0)
-gdf_filtered.plot()
 
+del gdf
 #%%Arredondar flow para cima
 gdf_filtered.loc[:,'flow'] = gdf_filtered.loc[:,'flow'].apply(math.ceil)
 
@@ -67,6 +67,10 @@ gdf_filtered.loc[(gdf_filtered['surface'] == 'compacted') |
                  (gdf_filtered['surface'] == 'ground') |
                  (gdf_filtered['surface'] == 'gravel') |
                  (gdf_filtered['surface'] == 'dirt'), 'surface'] = 'unpaved'
+
+#%%
+
+
 
 
 #%%Add emissoes PM2.5 por trecho de via pavimentada
