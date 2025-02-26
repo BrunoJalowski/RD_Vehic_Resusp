@@ -30,8 +30,6 @@ def emission_paved_roads(pm: float, silt_loading: float, weight: float) -> float
 
     return emission_factor
 
-print(emission_paved_roads(2.5, 1, 25))
-
 
 
 
@@ -67,9 +65,6 @@ def emission_unpaved_industrial(pm: float, silt_fraction: float, weight: float) 
     emission_factor = k * pow(silt_fraction / 12, a) * pow(weight / 3, b)
 
     return emission_factor
-
-
-print(emission_unpaved_industrial(2.5, 1, 25))
 
 
 
@@ -113,7 +108,7 @@ def emission_unpaved_public(pm: float, silt_fraction: float, speed: float, moist
     wear_emission = constants.loc[pm, 'wear_emission']
     
 
-    emission_factor = k * (((silt_fraction, a) * pow(speed, d)) / pow(moisture, c)) - wear_emission
+    emission_factor = k * ((pow(silt_fraction, a) * pow(speed, d)) / pow(moisture, c)) - wear_emission
 
     return emission_factor
 
