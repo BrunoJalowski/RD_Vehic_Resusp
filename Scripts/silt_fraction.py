@@ -8,9 +8,6 @@ Created on Fri Mar 21 11:34:11 2025
 DATASET SOURCE: https://brasil.mapbiomas.org/metodo-mapbiomas-solo/
 
 
-
-
-
 """
 import os
 import rasterio
