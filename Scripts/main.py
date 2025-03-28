@@ -10,12 +10,8 @@ import geopandas as gpd
 from datetime import datetime
 import math
 import xarray as xr
-import rioxarray as rxr
-import emission_factors as ef
-import matplotlib.pyplot as plt
 import netcdf4_conversions_v2 as conv
 import numpy as np
-import rasterio
 from pathlib import Path
 
 
@@ -70,7 +66,9 @@ def soil_moisture(gdf,soil_moisture_path):
 
 
 
-#%%Dados de velocidade do Tomtom combinado com dados de fluxo 
+#%% FLOW AND SPEED DATA FROM TOMTOM
+
+# Reading geodataframe
 gdf = gpd.read_file(flow_path)
 gdf.columns
 """Index(['index', 'road_type', 'traffic_level', 'traffic_road_coverage',
@@ -83,21 +81,21 @@ gdf.columns
       dtype='object')
 """
 
-#%%Recorte em gdf menor com colunas importantes
+#%% Filtering important columns from the gdf
 gdf_cut = gdf.loc[ : , ['id','timestamp','traffic_level',
                         'length','flow','surface','road_category','geometry'] ]
 
-#%%Conversão timestamp to datetime
+#%% Converting timestamp to datetime
 gdf_cut.loc[:,'datetime'] = gdf_cut.loc[:,'timestamp'].apply(datetime.fromtimestamp)
 
-#%%Filtragem de flow=Nan
+#%% Filtering Flow = Nan
 gdf_filtered = gdf_cut.dropna(axis=0)
 
 del gdf, gdf_cut
-#%%Arredondar flow para cima
+#%% Rounding up flow values
 gdf_filtered.loc[:,'flow'] = gdf_filtered.loc[:,'flow'].apply(math.ceil)
 
-#%%Reclassificação superfície das vias
+#%% Road surface reclassification
 """
 Classificação atual:
     array(['asphalt', 'paving_stones', 'compacted', None, 'unpaved', 'sett',
@@ -155,7 +153,6 @@ gdf_filtered['silt_loading'] = silt_values
 
 
 #%% UMIDADE DO SOLO
-
 gdf_filtered = soil_moisture(gdf_filtered, soil_moisture_path)
 
 #%%
