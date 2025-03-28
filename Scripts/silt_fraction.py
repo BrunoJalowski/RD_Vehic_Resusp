@@ -6,21 +6,35 @@ Created on Fri Mar 21 11:34:11 2025
 @author: brunojalowski
 """
 
-import rasterio
+from rasterio.enums import Resampling
+from rasterio.crs import CRS
+import matplotlib.pyplot as plt
+import rioxarray as rxr
+    
+#%%
+# Opening raster
+silt_fraction = rxr.open_rasterio('/home/brunojalowski/Documentos/RD_Vehic_Resusp/dados_entrada/MAPBIOMAS-EXPORT-20250220T123349Z-001/MAPBIOMAS-EXPORT/mapbiomas-brazil-collection-beta-2021-cos_0_30cm_kg_m2-0000000000-0000158720.tif')
+
+#%%
+# Setting downscale factor
+downscale_factor = 1/5
+
+# new height and width
+new_width = silt_fraction.rio.width * downscale_factor
+new_height = silt_fraction.rio.height * downscale_factor
+
+# Correcting scale_factor attribute
+silt_fraction.attrs['scale_factor'] = 0.2
+
+# Downscaling
+silt_fraction = silt_fraction.rio.reproject(silt_fraction.rio.crs, shape=(int(new_height),
+                                                     int(new_width)),
+                                            resampling=Resampling.bilinear)
+
+silt_fraction= silt_fraction.where(silt_fraction > 0)
 
 #%%
 
-silt_fraction = rasterio.open('/home/brunojalowski/Documentos/RD_Vehic_Resusp/dados_entrada/MAPBIOMAS-EXPORT-20250220T123349Z-001/MAPBIOMAS-EXPORT/mapbiomas-brazil-collection-beta-2021-cos_0_30cm_kg_m2-0000000000-0000158720.tif', mode='r')
-
-band1 = silt_fraction.read(1)
-
-
-
-
-
-
-
-    
 
 #%% Opening raster data 
 
@@ -47,23 +61,4 @@ Tamanho da imagem: 8790 x 31744
 Valor NoData: None
 Min valor: 0, Max valor: 0"""
 
-#%%
-with rasterio.open('/home/brunojalowski/Documentos/RD_Vehic_Resusp/dados_entrada/MAPBIOMAS-EXPORT-20250220T123349Z-001/MAPBIOMAS-EXPORT/mapbiomas-brazil-collection-beta-2021-cos_0_30cm_kg_m2-0000126976-0000000000.tif') as src:
-    # Verifique os metadados
-    print(f"Driver: {src.driver}")
-    print(f"Formato de dados: {src.dtypes[0]}")
-    print(f"Resolucao espacial: {src.res}")
-    print(f"CRS: {src.crs}")
-    print(f"Numero de bandas: {src.count}")
-    print(f"Valor NoData: {src.nodata}")
-      
-    band = src.read(1)  # Lê a primeira banda
-    print(band.min(), band.max())  # Verifica os valores mínimo e máximo da banda
-    
-    
-    
-    
-    
-    
-    
     
