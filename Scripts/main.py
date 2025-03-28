@@ -19,7 +19,7 @@ from pathlib import Path
 project_path = Path('/home/brunojalowski/Documentos/RD_Vehic_Resusp/dados_entrada')
 soil_moisture_path = project_path / 'Soil Moisture/METCRO2D_BR_20km_2023-02-01.nc'
 silt_fraction_path = project_path /'MAPBIOMAS-EXPORT-20250220T123349Z-001/MAPBIOMAS-EXPORT/mapbiomas-brazil-collection-beta-2021-cos_0_30cm_kg_m2-0000000000-0000158720.tif'
-flow_path = project_path / '4.speed_equation/2025-01-22_01_merged_merged_speed.gpkg'
+flow_path = project_path / '4.speed_equation/2025-01-22_01_merged_merged_speed.gpkg' 
 
 #%% FUNCTIONS
 def soil_moisture(gdf,soil_moisture_path):
@@ -85,6 +85,8 @@ gdf.columns
 gdf_cut = gdf.loc[ : , ['id','timestamp','traffic_level',
                         'length','flow','surface','road_category','geometry'] ]
 
+#%% Sorting rows by timestamp values
+gdf_cut = gdf_cut.sort_values(by=['timestamp'])
 #%% Converting timestamp to datetime
 gdf_cut.loc[:,'datetime'] = gdf_cut.loc[:,'timestamp'].apply(datetime.fromtimestamp)
 
