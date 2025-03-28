@@ -1,0 +1,11 @@
+- Os zooms maiores veem todas as categoria dos zoomns menores
+- As ruas são segmentadas as várias feições multilinhas, de modo que uma feição pegue trechos variados de mais de uma rua.
+	- Esses trechos não são iguais entre zooms
+- Não há problema visível de alinhamento dos trechos a partir do zoom 7
+	- zoom 5 e 6 muito grosseiros
+	- zoom 11 e 12 são iguais, logo vale pegar o zoom 11
+	- zoom 13 e 14 são iguais, logo vale pegar o zoom 13
+
+
+
+- VER SE OS TRECHOS MENORES QUE CORRESPONDEM A UM GRANDE DE UM ZOOM MENOR TEM VARIAÇÃO DE VELOCIDADE DE MODO QUE A MÉDIA DOS MENORES N CORRESPONDE AO MAIOR
