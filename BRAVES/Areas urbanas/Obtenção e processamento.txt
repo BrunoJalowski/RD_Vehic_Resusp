@@ -1,0 +1,48 @@
+18/12/2024
+By: Bruno Jalowski
+
+
+Este arquivo descreve o processo de obtenção do raster de uso do solo do Brasil e seu processamento para obter apenas classes referentes às manchas urbanas. O resultado deste processo será utilizado na determinação do nível de detalhamento (zoom) necessário para cada região do Brasil.
+
+
+------------------------------------------------------------------------------------
+
+1) Baixei o raster de Cobertura e Uso da Terra do Brasil da coleção 9 do MapBiomas na lataforma -> https://brasil.mapbiomas.org/colecoes-mapbiomas/
+
+Link de Download da imagem -> https://storage.googleapis.com/mapbiomas-public/initiatives/brasil/collection_9/lclu/coverage/brasil_coverage_2023.tif
+
+------------------------------------------------------------------------------------=
+2) No QGIS, foi feita a reclassificação das classes do raster utilizando o plugin SemiAutomatic Classification Plugin.
+
+Passos: clicar em plugins -> 
+	semiautomatic classification plugin ->
+	postprocessing ->
+	reclassification
+
+OBS) Para uso do plugin mencionado, deve-se ter instalado e atualizado o remotior-sensus, como mostrado em https://semiautomaticclassificationmanual.readthedocs.io/pl/latest/installation_win64.html#installation-of-required-dependencies
+
+
+2.1) A reclassificação foi feita segundo os códigos de legenda da Coleção 9 estabelecidas pelo MapBiomas, na página https://brasil.mapbiomas.org/en/codigos-de-legenda/
+
+2.2) Na janela da ferramenta de reclassificação, seleciona-se a camada raster e na seção 'Values', foram inseridos todos os códigos da legenda na coluna 'Old value'. 
+
+2.3) Em seguida, a coluna 'New Value' foi preenchida com o valor 0 (None) em todas as classes, exceto nas de código 24, 30 e 25, que receberam o valor 24 (Área urbanizada).
+
+	- 24: Área urbanizada
+	- 30: Mineração
+	- 25: Outras áreas não vegetadas
+
+2.4) Executou-se a ferramenta, salvando o novo raster em um novo arquivo
+
+---------------------------------------------------------------------------------------
+3) Após criação do raster reclassificado, foi feita a vetorização dele utilizando o mesmo plugin, apenas selecionando a camada e rodando a ferramenta.
+
+Passos: clicar em plugin ->
+	semiautomatic classification plugin ->
+	postprocessing ->
+	classification to vector
+	
+
+
+
+

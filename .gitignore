@@ -1,8 +1,9 @@
-venv
-Script Requisição TomTom
-dados_entrada
-outputs
-tiles
-Outputs
-Inputs
-BRAVES
+venv/
+Script Requisição TomTom/
+dados_entrada/
+outputs/
+tiles/
+Outputs/
+Inputs/
+inputs/
+dados/
