@@ -13,13 +13,22 @@ import xarray as xr
 import netcdf4_conversions_v2 as conv
 import numpy as np
 from pathlib import Path
-
+import glob
 
 #%% Paths
 project_path = Path('/home/brunojalowski/Documentos/RD_Vehic_Resusp/dados_entrada')
 soil_moisture_path = project_path / 'Soil Moisture/METCRO2D_BR_20km_2023-02-01.nc'
-silt_fraction_path = project_path /'MAPBIOMAS-EXPORT-20250220T123349Z-001/MAPBIOMAS-EXPORT/mapbiomas-brazil-collection-beta-2021-cos_0_30cm_kg_m2-0000000000-0000158720.tif'
-flow_path = project_path / '4.speed_equation/2025-01-22_01_merged_merged_speed.gpkg' 
+silt_fraction_path = project_path /'MAPBIOMAS-EXPORT-20250220T123349Z-001/MAPBIOMAS-EXPORT'
+flow_path = project_path / '4.speed_equation' 
+
+#%%
+#FIXME
+files = glob.glob(str(flow_path / '*.gpkg'))
+
+hour0 = gpd.read_file(files[0])
+hour1 = gpd.read_file(files[1])
+hour2 = gpd.read_file(files[2])
+
 
 #%% FUNCTIONS
 def soil_moisture(gdf,soil_moisture_path):
@@ -69,7 +78,8 @@ def soil_moisture(gdf,soil_moisture_path):
 #%% FLOW AND SPEED DATA FROM TOMTOM
 
 # Reading geodataframe
-gdf = gpd.read_file(flow_path)
+files = glob.glob(str(flow_path / '*.gpkg'))
+gdf = gpd.read_file(files[0])
 gdf.columns
 """Index(['index', 'road_type', 'traffic_level', 'traffic_road_coverage',
        'road_category', 'road_subcategory', 'road_closure', 'area_traffic',
@@ -128,10 +138,10 @@ gdf_filtered.loc[(gdf_filtered['surface'] == 'compacted') |
 
 #%% SILT LOADING
 """ Silt loading according to Average Daily Traffic (ADT) values from AP-42 "Paved Roads":
-            ADT <   500 --> 0.6
+    0     < ADT <   500 --> 0.6
     500   < ADT <  5000 --> 0.2
     5000  < ADT < 10000 --> 0.06
-    10000 < ADT < infinity  --> 0.03
+    10000 < ADT < infinity --> 0.03
     """
 adt = {500:0.6,
        5000:0.3,
@@ -147,12 +157,12 @@ silt_values = gdf_filtered['silt_loading'].values
 
 # Filtering silt loading values according to the flow column
 for key, value in sorted(adt.items(),reverse=True):
-    silt_values[flow_values <= float(key)] = value
+    silt_values[flow_values < key] = value
 
 # Assigning the silt loading values 
 gdf_filtered['silt_loading'] = silt_values
 
-
+del flow_values, silt_values, key, value, adt
 
 #%% UMIDADE DO SOLO
 gdf_filtered = soil_moisture(gdf_filtered, soil_moisture_path)
