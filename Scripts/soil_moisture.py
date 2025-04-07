@@ -77,6 +77,20 @@ plt.show()"""
 Desse modo, talvez essa resolução espacial utilizada não afete muito a estimativa das
 emissoes em vias nao pavimentadas, já que só elas que usam umidade do solo"""
 
+#%% Assignment results
+
+fig, ax = plt.subplots(figsize=(10, 10))
+xr.plot.pcolormesh(darray=soil_moisture[0,0,:,:],ax=ax, alpha=0.5)
+gdf_filtered.plot(column='soil_moisture', ax=ax, cmap='viridis')  
+
+minx, miny, maxx, maxy = gdf_filtered.total_bounds
+ax.set_xlim(minx-0.01, maxx+0.01)
+ax.set_ylim(miny-0.01, maxy+0.01)
+
+ax.set_title('Soil moisture by road')
+ax.set_xlabel('Longitude')
+ax.set_ylabel('Latitude')
+
 
 
 #%%
