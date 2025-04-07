@@ -11,11 +11,10 @@ import emission_factors as ef
 #%% EMISSÕES VIAS NÃO PAVIMENTADAS ACESSO PÚBLICO
 
 #Dados iniciais via não pavimentada
-silt_fraction = 1
 
 ### PM2.5
 #Fator de emissão PM2.5 em lb/VMT
-gdf_filtered.loc[gdf_filtered['surface']=='unpaved','EF25'] = ef.emission_unpaved_public(2.5, silt_fraction, (gdf_filtered.loc[:,'traffic_level'] * 0.621371), gdf_filtered.loc[:,'soil_moisture'])
+gdf_filtered.loc[gdf_filtered['surface']=='unpaved','EF25'] = ef.emission_unpaved_public(2.5, gdf_filtered.loc[:,'silt_fraction'], (gdf_filtered.loc[:,'traffic_level'] * 0.621371), gdf_filtered.loc[:,'soil_moisture'])
 
     #0.621371 é o fator de conversão de km/h para mph
 
@@ -31,7 +30,7 @@ gdf_filtered.loc[gdf_filtered['surface']=='unpaved','25_emission'] = gdf_filtere
 
 ### PM10
 #Fator de emissão PM10 em lb/VMT
-gdf_filtered.loc[gdf_filtered['surface']=='unpaved','EF10'] = ef.emission_unpaved_public(10, silt_fraction, (gdf_filtered.loc[:,'traffic_level'] * 0.621371), gdf_filtered.loc[:,'soil_moisture'])
+gdf_filtered.loc[gdf_filtered['surface']=='unpaved','EF10'] = ef.emission_unpaved_public(10, gdf_filtered.loc[:,'silt_fraction'], (gdf_filtered.loc[:,'traffic_level'] * 0.621371), gdf_filtered.loc[:,'soil_moisture'])
 
     #0.621371 é o fator de conversão de km/h para mph
 
@@ -47,7 +46,7 @@ gdf_filtered.loc[gdf_filtered['surface']=='unpaved','10_emission'] = gdf_filtere
 
 ### PM30
 #Fator de emissão PM30 em lb/VMT
-gdf_filtered.loc[gdf_filtered['surface']=='unpaved','EF30'] = ef.emission_unpaved_public(30, silt_fraction, (gdf_filtered.loc[:,'traffic_level'] * 0.621371), gdf_filtered.loc[:,'soil_moisture'])
+gdf_filtered.loc[gdf_filtered['surface']=='unpaved','EF30'] = ef.emission_unpaved_public(30, gdf_filtered.loc[:,'silt_fraction'], (gdf_filtered.loc[:,'traffic_level'] * 0.621371), gdf_filtered.loc[:,'soil_moisture'])
 
     #0.621371 é o fator de conversão de km/h para mph
 

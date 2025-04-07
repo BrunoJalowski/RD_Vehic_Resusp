@@ -14,11 +14,13 @@ import netcdf4_conversions_v2 as conv
 import numpy as np
 from pathlib import Path
 import glob
+from rasterio.enums import Resampling
+import rioxarray as rxr
 
 #%% Paths
 project_path = Path('/home/brunojalowski/Documentos/RD_Vehic_Resusp/dados_entrada')
 soil_moisture_path = project_path / 'Soil Moisture/METCRO2D_BR_20km_2023-02-01.nc'
-silt_fraction_path = project_path /'MAPBIOMAS-EXPORT-20250220T123349Z-001/MAPBIOMAS-EXPORT'
+silt_fraction_path = project_path /'Silt_Fraction'
 flow_path = project_path / '4.speed_equation' 
 
 #%%
@@ -73,6 +75,53 @@ def soil_moisture(gdf,soil_moisture_path):
 
     return gdf 
 
+
+
+def silt_fraction(gdf, raster):
+    raster = rxr.open_rasterio(silt_fraction_path / 'mapbiomas-brazil-collection2-beta-000_010cm-granulometry_silt_percent-0000095232-0000063488.tif', band_as_variable=True)
+    
+    # Definindo CRS
+    raster.rio.write_crs("epsg:4326", inplace=True)
+    
+    # Reduzindo a dimensão do raster 1/10
+    downscale_factor = 1/10
+        
+    # nova largura e altura
+    new_width = raster.rio.width * downscale_factor
+    new_height = raster.rio.height * downscale_factor
+        
+    # fazendo o downscaling
+    raster = raster.rio.reproject(raster.rio.crs, shape=(int(new_height),
+                                                         int(new_width)),
+                                  resampling=Resampling.bilinear)
+    
+    #Designando valores de teor de silte para cada trecho de via
+    values = []
+    for _, row in gdf.iterrows():
+        line = row['geometry']  
+    
+        if line.geom_type == 'LineString':
+            line_values = []  
+            """ Para cada ponto na LineString, pega os índices mais próximos e com 
+             eles o teor de silte"""
+            for point in line.coords:
+                lon, lat = point
+                lat_idx = np.abs(raster['y'] - lat).argmin()  
+                lon_idx = np.abs(raster['x'] - lon).argmin()  
+                value = raster['band_1'][lon_idx, lat_idx].values  
+                line_values.append(value)
+            values.append(line_values)  
+    
+        else:
+            values.append(None)  
+    
+    
+    gdf['silt_fraction'] = values
+    gdf.loc[:,'silt_fraction'] = gdf.loc[:,'silt_fraction'].str[0]
+    
+    del lat, lat_idx, line, line_values,lon,lon_idx,point,row
+    
+    return gdf
 
 
 #%% FLOW AND SPEED DATA FROM TOMTOM
@@ -167,4 +216,5 @@ del flow_values, silt_values, key, value, adt
 #%% UMIDADE DO SOLO
 gdf_filtered = soil_moisture(gdf_filtered, soil_moisture_path)
 
-#%%
+#%% SILT FRACTION
+gdf_filtered = silt_fraction(gdf_filtered, silt_fraction_path)
