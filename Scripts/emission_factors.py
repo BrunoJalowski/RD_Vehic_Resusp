@@ -108,7 +108,7 @@ def emission_unpaved_public(pm: float, silt_fraction: float, speed: float, moist
     wear_emission = constants.loc[pm, 'wear_emission']
     
 
-    emission_factor = k * ((pow(silt_fraction, a) * pow(speed, d)) / pow(moisture, c)) - wear_emission
+    emission_factor = k * ((pow(silt_fraction/12, a) * pow(speed/30, d)) / pow(moisture/0.5, c)) - wear_emission
 
     return emission_factor
 

@@ -23,14 +23,6 @@ soil_moisture_path = project_path / 'Soil Moisture/METCRO2D_BR_20km_2023-02-01.n
 silt_fraction_path = project_path /'Silt_Fraction'
 flow_path = project_path / '4.speed_equation' 
 
-#%%
-#FIXME
-files = glob.glob(str(flow_path / '*.gpkg'))
-
-hour0 = gpd.read_file(files[0])
-hour1 = gpd.read_file(files[1])
-hour2 = gpd.read_file(files[2])
-
 
 #%% FUNCTIONS
 def soil_moisture(gdf,soil_moisture_path):
@@ -61,7 +53,7 @@ def soil_moisture(gdf,soil_moisture_path):
                 lat_idx = np.abs(soil_moisture['lat'] - lat).argmin()  
                 lon_idx = np.abs(soil_moisture['lon'] - lon).argmin()  
                 value = soil_moisture[0,0, lat_idx, lon_idx].values  
-                line_values.append(value)
+                line_values.append(value * 100)
             values.append(line_values)  
     
         else:

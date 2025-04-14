@@ -48,6 +48,7 @@ silt_fraction = silt_fraction.rio.reproject(silt_fraction.rio.crs, shape=(int(ne
                               resampling=Resampling.bilinear)
 
 #%%Plotando os dois para ver se encaixam
+"""
 fig, ax = plt.subplots()
 xr.plot.pcolormesh(darray=silt_fraction['band_1'][:,:],ax=ax)
 gdf_filtered.plot(ax=ax, color="r")
@@ -63,6 +64,8 @@ ax.set_ylabel('Latitude')
 plt.show()
 
 del minx, miny, maxy, maxx
+
+"""
 #%%Designando valores de teor de silte para cada trecho de via
 values = []
 for _, row in gdf_filtered.iterrows():
@@ -90,7 +93,7 @@ gdf_filtered.loc[:,'silt_fraction'] = gdf_filtered.loc[:,'silt_fraction'].str[0]
 del lat, lat_idx, line, line_values,lon,lon_idx,point,row
 
 #%% Assignment results
-
+"""
 fig, ax = plt.subplots(figsize=(10, 10))
 xr.plot.pcolormesh(darray=silt_fraction['band_1'],ax=ax, alpha=0.5)
 gdf_filtered.plot(column='silt_fraction', ax=ax, cmap='viridis')  
@@ -102,7 +105,7 @@ ax.set_ylim(miny-0.01, maxy+0.01)
 ax.set_title('Silt Fraction by road')
 ax.set_xlabel('Longitude')
 ax.set_ylabel('Latitude')
-
+"""
 
 #%%
 def silt_fraction(gdf, raster):
