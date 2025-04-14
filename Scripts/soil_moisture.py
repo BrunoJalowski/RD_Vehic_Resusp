@@ -30,11 +30,13 @@ soil_moisture = xds['SOIM1'] #SOIM1 = volumetric soil moisture in near-surface s
 gdf_filtered = gdf_filtered.to_crs(soil_moisture.rio.crs)
 
 #%%Plotando os dois para ver se encaixam
+"""
 fig, ax = plt.subplots()
 xr.plot.pcolormesh(darray=soil_moisture[0,0,:,:],ax=ax)
 gdf_filtered.plot(ax=ax, color="r")
 
 plt.show()
+"""
 
 #%%Designando valores de umidade do solo para cada trecho de via
 values = []
@@ -50,7 +52,7 @@ for _, row in gdf_filtered.iterrows():
             lat_idx = np.abs(soil_moisture['lat'] - lat).argmin()  
             lon_idx = np.abs(soil_moisture['lon'] - lon).argmin()  
             value = soil_moisture[0,0, lat_idx, lon_idx].values  
-            line_values.append(value)
+            line_values.append(value*100)
         values.append(line_values)  
 
     else:
@@ -78,10 +80,10 @@ Desse modo, talvez essa resolução espacial utilizada não afete muito a estima
 emissoes em vias nao pavimentadas, já que só elas que usam umidade do solo"""
 
 #%% Assignment results
-
+"""
 fig, ax = plt.subplots(figsize=(10, 10))
 xr.plot.pcolormesh(darray=soil_moisture[0,0,:,:],ax=ax, alpha=0.5)
-gdf_filtered.plot(column='soil_moisture', ax=ax, cmap='viridis')  
+gdf_filtered.plot(column='soil_moisture', ax=ax, cmap='hot_r')  
 
 minx, miny, maxx, maxy = gdf_filtered.total_bounds
 ax.set_xlim(minx-0.01, maxx+0.01)
@@ -90,7 +92,7 @@ ax.set_ylim(miny-0.01, maxy+0.01)
 ax.set_title('Soil moisture by road')
 ax.set_xlabel('Longitude')
 ax.set_ylabel('Latitude')
-
+"""
 
 
 #%%
@@ -123,7 +125,7 @@ def soil_moisture(gdf,xds):
                 lat_idx = np.abs(soil_moisture['lat'] - lat).argmin()  
                 lon_idx = np.abs(soil_moisture['lon'] - lon).argmin()  
                 value = soil_moisture[0,0, lat_idx, lon_idx].values  
-                line_values.append(value)
+                line_values.append(value * 100)
             values.append(line_values)  
     
         else:
