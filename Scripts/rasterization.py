@@ -105,7 +105,7 @@ def emissions_by_pixel(cell, pollutant, emissions):
     # Emissão ponderada
     return (intersected_lines[pollutant] * intersected_lines["weight_factor"]).sum()
 
-#%%
+#%% Apply function to all grid cells for PM2.5 emissions
 valores = []
 for i in grid.index:
         cell = grid.geometry[i]
@@ -116,6 +116,27 @@ for i in grid.index:
             valores.append(None)
 
 grid['25_emission'] = valores
+
+#%% Applies emissions_by_pixel function to all grid cells for each PM size
+
+all_values = []
+pollutants = ['25_emission','10_emission','30_emission']
+for pollutant in pollutants:
+    values = []
+    for i in grid.index:
+            cell = grid.geometry[i]
+            value = emissions_by_pixel(cell, pollutant, gdf_filtered)
+            if value > 0 :
+                values.append(np.log10(value))
+            else:
+                values.append(None)
+    all_values.append(values)
+
+grid['25_emission'] = all_values[0]
+grid['10_emission'] = all_values[1]
+grid['30_emission'] = all_values[2]
+
+
 
 #%% PLOT DE FLUXOS
 fig, ax = plt.subplots()
@@ -307,3 +328,52 @@ ax.set_ylabel('Latitude')
 ax.set_facecolor('grey')
 ax.tick_params(axis='both', labelsize=8)
 plt.tight_layout()
+
+#%%
+
+fig, axes = plt.subplots(1, 3, figsize=(20, 6))  
+
+minx, miny, maxx, maxy = gdf_filtered.total_bounds
+vmin_flow = gdf_filtered[gdf_filtered['flow'] > 0]['flow'].min()
+vmax_flow = gdf_filtered['flow'].max()
+norm_flow = colors.LogNorm(vmin=vmin_flow, vmax=vmax_flow)
+
+pollutants = ['25_emission', '10_emission', '30_emission']
+titles = ['PM2.5', 'PM10', 'PM3.0']
+cmaps = ['viridis', 'turbo', 'hot_r']
+
+for ax, pollutant, title, cmap in zip(axes, pollutants, titles, cmaps):
+    vmin_p = gdf_filtered[gdf_filtered['flow'] > 0][pollutant].min()
+    vmax_p = gdf_filtered[pollutant].max()
+    norm_p = colors.LogNorm(vmin=vmin_p, vmax=vmax_p)
+
+    grid.plot(ax=ax, column=pollutant, cmap=cmap, linewidth=0.8, alpha=0.8)
+    gdf_filtered.plot(ax=ax, column='flow', cmap='RdGy', norm=norm_flow, linewidth=1.2)
+
+    divider = make_axes_locatable(ax)
+
+    cax_emission = divider.append_axes("right", size="5%", pad=-0.1)
+    sm_emission = cm.ScalarMappable(norm=norm_p, cmap=cmap)
+    sm_emission.set_array([])
+    cbar_emission = plt.colorbar(sm_emission, cax=cax_emission)
+    cbar_emission.set_label(f'Emissão {title}', fontsize=7)
+    cbar_emission.ax.tick_params(labelsize=7)
+    
+    cax_flow = divider.append_axes("bottom", size="2%", pad=0.4)
+    sm_flow = cm.ScalarMappable(norm=norm_flow, cmap='RdGy')
+    sm_flow.set_array([])
+    cbar_flow = plt.colorbar(sm_flow, cax=cax_flow, orientation="horizontal")
+    cbar_flow.set_label('Fluxo',fontsize=10)
+    cbar_flow.ax.tick_params(labelsize=7)
+
+    ax.set_xlim(minx, maxx)
+    ax.set_ylim(miny, maxy)
+    ax.set_title(f'Fluxo e Emissão de {title}')
+    ax.set_xlabel('Longitude', fontsize=7)
+    ax.set_ylabel('Latitude', fontsize=7)
+    ax.set_facecolor('grey')
+    ax.tick_params(axis='both', labelsize=5)
+
+plt.suptitle('Sobreposição de Fluxo e Emissões', fontsize=16)
+plt.tight_layout()
+plt.show()
