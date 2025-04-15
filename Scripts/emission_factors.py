@@ -2,28 +2,35 @@ import pandas as pd
 
 "EMISSION FACTOR FOR PAVED ROADS"
 
-def emission_paved_roads(pm: float, silt_loading: float, weight: float) -> float:
-    """Calculates the particulate matter emission factor for 4 size classes (PM2.5, PM10, PM15 and PM30) following 
-    EPA's "AP-42: 13.2.1 Paved Roads".
+
+# IGOR: Na docstring lembra de respeitar o estilo do numpy com tipos. Esse é
+# o nosso padrão de documentação!
+def emission_paved_roads(
+        pm: float, silt_loading: float, weight: float) -> float:
+    """Calculates the particulate matter emission factor for 4 size classes
+    (PM2.5, PM10, PM15 and PM30) following EPA's "AP-42: 13.2.1 Paved Roads".
 
     Args:
-        pm (float): particulate matter size class to be estimated 
+        pm (float): particulate matter size class to be estimated
             There are 4 valid options (2.5, 10, 15 and 30)
 
         silt_loading (float):
             Maximum statistical quality within the range of 0,03 - 400 g/m²
 
-        weight (float): average weight (tons) of the vehicles traveling the road
+        weight (float): average weight (tons) of the vehicles traveling the
+            road
 
     Returns:
         float: emission factor for the chosen particulate matter size class
     """
 
-    pm_options = {'2.5': 0.15 ,
+    pm_options = {'2.5': 0.15,
                   '10': 0.62,
                   '15': 0.77,
                   '30': 3.23}
     
+    # IGOR: É possível que pm não tenha um valor de chave no dicionário
+    # pm_options?
     k = pm_options[str(pm)]
 
     emission_factor = k * pow(silt_loading, 0.91) * pow(weight, 1.02)
@@ -36,6 +43,8 @@ def emission_paved_roads(pm: float, silt_loading: float, weight: float) -> float
 #---------------------------------------------------------------------------------
 "EMISSION FACTOR FOR UNPAVED INDUSTRIAL ROADS"
 
+# IGOR: Mesma coisa: seguir numpy com tipos para docstrings.
+# Summary? Weight description? Return description?
 def emission_unpaved_industrial(pm: float, silt_fraction: float, weight: float) -> float:
     """_summary_
 
@@ -51,6 +60,8 @@ def emission_unpaved_industrial(pm: float, silt_fraction: float, weight: float) 
         float: _description_
     """
 
+
+    # IGOR: Não tem necessidade de criar dataframe aqui
     constants = pd.DataFrame(data = {'k': [0.15, 1.5, 4.9],
                                      'a': [0.9, 0.9, 0.7],
                                      'b': [0.45, 0.45, 0.45]},
@@ -72,12 +83,19 @@ def emission_unpaved_industrial(pm: float, silt_fraction: float, weight: float) 
 "EMISSION FACTOR FOR UNPAVED OPEN ACCESS PUBLIC ROADS"
 
 
-def emission_unpaved_public(pm: float, silt_fraction: float, speed: float, moisture: float) -> float:
-    """This function takes arguments refering to PM size class, silt fraction of the soil,
-    vehicle speed on the road and soil moisture and returns the emission factor for this
-    road category.
-       The equation and constants used follow EPA AP-42 guidelines for Unpaved Open Access Public Roads.
-    
+# IGOR: Manter máximo de 80 caracteres de texto
+def emission_unpaved_public(
+        pm: float,
+        silt_fraction: float,
+        speed: float,
+        moisture: float
+        ) -> float:
+    """This function takes arguments refering to PM size class, silt fraction
+    of the soil, vehicle speed on the road and soil moisture and returns the
+    emission factor for this road category.
+    The equation and constants used follow EPA AP-42 guidelines for Unpaved
+    Open Access Public Roads.
+
 
     Args:
         pm (float): particulate matter size class to be estimated 
@@ -93,6 +111,7 @@ def emission_unpaved_public(pm: float, silt_fraction: float, speed: float, moist
         float: emission factor for unpaved industrial roads (lb/VMT)
     """
 
+    # IGOR: Mesma coisa, dataframe sem necessidade.
     constants = pd.DataFrame(data = {'k': [0.18, 1.8, 6.0],
                                      'a': [1.0, 1.0, 1.0],
                                      'c': [0.2, 0.2, 0.3],
@@ -108,7 +127,9 @@ def emission_unpaved_public(pm: float, silt_fraction: float, speed: float, moist
     wear_emission = constants.loc[pm, 'wear_emission']
     
 
-    emission_factor = k * ((pow(silt_fraction/12, a) * pow(speed/30, d)) / pow(moisture/0.5, c)) - wear_emission
+    emission_factor = k * (
+        (pow(silt_fraction/12, a) * pow(speed/30, d)) /
+        pow(moisture/0.5, c)) - wear_emission
 
     return emission_factor
 
@@ -116,7 +137,7 @@ def emission_unpaved_public(pm: float, silt_fraction: float, speed: float, moist
 
 #--------------------------------------------------------------------------------------------------
 "HOURLY RAINFALL CORRECTION FACTOR FOR PAVED ROADS"
-
+# IGOR: Arrumar o design do código
 def paved_rainfall_correction(emission_factor:float, rainfall:int, total_period:int) -> float:
     """This function 
     
@@ -143,6 +164,7 @@ def paved_rainfall_correction(emission_factor:float, rainfall:int, total_period:
 #------------------------------------------------------------------------------------------------------
 "HOURLY RAINFALL CORRECTION FACTOR FOR UNPAVED ROADS"
 
+# IGOR: Arrumar o design do código
 def unpaved_rainfall_correction(emission_factor:float, rainfall:int, total_period:int) -> float:
     """This function 
     
@@ -169,5 +191,6 @@ def unpaved_rainfall_correction(emission_factor:float, rainfall:int, total_perio
 #----------------------------------------------------------------------------------------------
 "lb/VMT to g/VKT CONVERSION"
 
+# IGOR: Arrumar o design do código
 def lbvmt_to_gvkt(lbvmt:float)->float:
     return lbvmt * 281.9

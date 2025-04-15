@@ -49,6 +49,7 @@ lat_edges = np.concatenate([
     [lats[-1] + (lats[-1] - lats[-2]) / 2]
 ])
 
+# IGOR: Evitar loops, só se for o último recurso
 # Creates grid cells based on the edges coordinates
 grid_cells = []
 for i in range(len(lat_edges) - 1):
@@ -73,6 +74,8 @@ grid.boundary.plot(ax=ax, color='gray', linestyle='--', linewidth=0.5)
 
 #%%
 
+# IGOR: O ideal seria cortar as linhas de vias que estão no limite da célula,
+# não concorda?
 def emissions_by_pixel(cell, pollutant, emissions):
     """ This function calculates the total amount emitted within the boundaries of the selected cell.
 

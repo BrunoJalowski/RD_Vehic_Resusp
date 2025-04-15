@@ -67,6 +67,7 @@ del minx, miny, maxy, maxx
 
 """
 #%%Designando valores de teor de silte para cada trecho de via
+# IGOR: Novamente, os fors.
 values = []
 for _, row in gdf_filtered.iterrows():
     line = row['geometry']  
@@ -108,6 +109,7 @@ ax.set_ylabel('Latitude')
 """
 
 #%%
+# IGOR: Docstring?
 def silt_fraction(gdf, raster):
     raster = rxr.open_rasterio(silt_fraction_path / 'mapbiomas-brazil-collection2-beta-000_010cm-granulometry_silt_percent-0000095232-0000063488.tif', band_as_variable=True)
     
@@ -127,6 +129,7 @@ def silt_fraction(gdf, raster):
                                   resampling=Resampling.bilinear)
     
     #Designando valores de teor de silte para cada trecho de via
+    # IGOR: Novamente, os fors.
     values = []
     for _, row in gdf.iterrows():
         line = row['geometry']  

@@ -9,6 +9,10 @@ from main import gdf_filtered
 import emission_factors as ef
 
 #%% EMISSÕES VIAS NÃO PAVIMENTADAS ACESSO PÚBLICO
+# IGOR: Comentários gerais - tudo tem que estar visível em até 80 caracteres.
+# Tudo que envolve uma lógica importante, como multiplicações e divisões, é
+# importante considerar em agrupar numa função. Seguir um bom design de código
+# vide PEP8
 
 #Dados iniciais via não pavimentada
 

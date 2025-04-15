@@ -97,6 +97,7 @@ ax.set_ylabel('Latitude')
 
 #%%
 
+# IGOR: Docstrings?
 def soil_moisture(gdf,xds):
     #Abrindo o dataset do CMIP
     xds = xr.open_mfdataset('/home/brunojalowski/Documentos/RD_Vehic_Resusp/dados_entrada/Soil Moisture/METCRO2D_BR_20km_2023-02-01.nc')
@@ -112,6 +113,7 @@ def soil_moisture(gdf,xds):
     
     
     #Designando valores de umidade do solo para cada trecho de via
+    # IGOR: Mais uma vez, fors.
     values = []
     for _, row in gdf.iterrows():
         line = row['geometry']  

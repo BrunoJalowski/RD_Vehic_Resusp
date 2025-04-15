@@ -25,7 +25,8 @@ flow_path = project_path / '4.speed_equation'
 
 
 #%% FUNCTIONS
-def soil_moisture(gdf,soil_moisture_path):
+# IGOR: Faltou a docstring!
+def soil_moisture(gdf, soil_moisture_path):
     #Abrindo o dataset do CMIP
     xds = xr.open_mfdataset(soil_moisture_path)
         
@@ -41,6 +42,9 @@ def soil_moisture(gdf,soil_moisture_path):
     
     #Designando valores de umidade do solo para cada trecho de via
     values = []
+    # IGOR: Evita usar iterrows. Usa só se não tiveres outra alternativa. Isso
+    # costuma gerar gargalos.. Acho que esse trecho todo poderia ser feito 
+    # usando .apply e .distance
     for _, row in gdf.iterrows():
         line = row['geometry']  
     
@@ -48,6 +52,11 @@ def soil_moisture(gdf,soil_moisture_path):
             line_values = []  
             """ Para cada ponto na LineString, pega os índices mais próximos e com 
              eles o valor de umidade"""
+            # IGOR: Se tivesse que colocar uma descrição em docstring pra esse
+            # trecho, talvez faça sentido criar uma função só para isso!
+            # Nesse caso, uma forma mais fácil é você usar a função .distance
+            # do geopandas em um geodataframe com os pontos de soil_misture
+            # no dataframe com a linha.
             for point in line.coords:
                 lon, lat = point
                 lat_idx = np.abs(soil_moisture['lat'] - lat).argmin()  
@@ -61,15 +70,18 @@ def soil_moisture(gdf,soil_moisture_path):
     
     
     gdf['soil_moisture'] = values
+    # IGOR: Por que pegando o primeiro caractere?
     gdf.loc[:,'soil_moisture'] = gdf.loc[:,'soil_moisture'].str[0]
-    
+
+    # IGOR: vírgulas
     del lat, lat_idx, line, line_values,lon,lon_idx,point,row
 
     return gdf 
 
 
-
+# IGOR: Cadê a docstring?
 def silt_fraction(gdf, raster):
+    # IGOR: Tentar sempre manter o código com 80 caracteres no máximo de linha
     raster = rxr.open_rasterio(silt_fraction_path / 'mapbiomas-brazil-collection2-beta-000_010cm-granulometry_silt_percent-0000095232-0000063488.tif', band_as_variable=True)
     
     # Definindo CRS
@@ -83,12 +95,16 @@ def silt_fraction(gdf, raster):
     new_height = raster.rio.height * downscale_factor
         
     # fazendo o downscaling
+    # IGOR: Curiosidade, sabe o que significa o bilinear? Me retorne o que
+    # você entende desse trecho.
     raster = raster.rio.reproject(raster.rio.crs, shape=(int(new_height),
                                                          int(new_width)),
                                   resampling=Resampling.bilinear)
     
     #Designando valores de teor de silte para cada trecho de via
     values = []
+    # IGOR: Mesma coisa do método anterior, evitar usar iterrows e evitar
+    # iterações com for
     for _, row in gdf.iterrows():
         line = row['geometry']  
     
@@ -119,7 +135,10 @@ def silt_fraction(gdf, raster):
 #%% FLOW AND SPEED DATA FROM TOMTOM
 
 # Reading geodataframe
+# IGOR: Recomendo usar o rglob() do pathlib
 files = glob.glob(str(flow_path / '*.gpkg'))
+
+# IGOR: Não deveria ter um for aqui?
 gdf = gpd.read_file(files[0])
 gdf.columns
 """Index(['index', 'road_type', 'traffic_level', 'traffic_road_coverage',
@@ -137,6 +156,9 @@ gdf_cut = gdf.loc[ : , ['id','timestamp','traffic_level',
                         'length','flow','surface','road_category','geometry'] ]
 
 #%% Sorting rows by timestamp values
+# IGOR: Lembrando que esse timestamp não se refere ao tempo real da informação,
+# essa informação está no NOME DO ARQUIVO. Te recomendo manter essa info como
+# variável simples durante a importação do dado.
 gdf_cut = gdf_cut.sort_values(by=['timestamp'])
 #%% Converting timestamp to datetime
 gdf_cut.loc[:,'datetime'] = gdf_cut.loc[:,'timestamp'].apply(datetime.fromtimestamp)
@@ -146,6 +168,7 @@ gdf_filtered = gdf_cut.dropna(axis=0)
 
 del gdf, gdf_cut
 #%% Rounding up flow values
+# IGOR: Essa etapa é realmente necessária?
 gdf_filtered.loc[:,'flow'] = gdf_filtered.loc[:,'flow'].apply(math.ceil)
 
 #%% Road surface reclassification
@@ -184,12 +207,14 @@ gdf_filtered.loc[(gdf_filtered['surface'] == 'compacted') |
     5000  < ADT < 10000 --> 0.06
     10000 < ADT < infinity --> 0.03
     """
+# IGOR: Existe unidade para o ADT? Se sim, é importante documentar.
 adt = {500:0.6,
        5000:0.3,
        10000:0.06,
        100000000:0.03}
 
 # Creating the silt loading column
+# IGOR: Você pode simplesmente ocultar essa linha
 gdf_filtered.loc[:,'silt_loading'] = gdf_filtered.loc[:,'flow']
 
 # Creating list with flow and silt loading values
@@ -197,7 +222,15 @@ flow_values = gdf_filtered['flow'].values
 silt_values = gdf_filtered['silt_loading'].values
 
 # Filtering silt loading values according to the flow column
-for key, value in sorted(adt.items(),reverse=True):
+# IGOR: Evita ao máximo usar loops nos teus códigos. Sempre que possível, usa
+# notação matricial ou métodos built-in do pandas ou da biblioteca que tais
+# usando. Nesse caso, você está atribuindo mais de um valor mais de uma vez,
+# e isso causa problema de performance, principalmente se teu conjunto de dados
+# for maior.
+# 
+# Eu criaria uma função com if-else para lidar com esse intervalor, e chararia
+# ele via .apply(..., axis=1)
+for key, value in sorted(adt.items(), reverse=True):
     silt_values[flow_values < key] = value
 
 # Assigning the silt loading values 
