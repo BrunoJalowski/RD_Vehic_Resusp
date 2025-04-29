@@ -26,6 +26,16 @@ flow_path = project_path / '4.speed_equation'
 
 #%% FUNCTIONS
 def soil_moisture(gdf,soil_moisture_path):
+    """Assigns soil moisture values for each linestring segment
+
+    Args:
+        gdf (GeoDataFrame): GeoDataFrame with linestrings
+
+        soil_moisture_path (str): path for oil moisture dataset
+
+    Returns:
+        float: soil moisture content (%)
+    """
     #Abrindo o dataset do CMIP
     xds = xr.open_mfdataset(soil_moisture_path)
         

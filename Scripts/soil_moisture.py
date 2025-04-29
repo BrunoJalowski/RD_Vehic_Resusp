@@ -97,7 +97,17 @@ ax.set_ylabel('Latitude')
 
 #%%
 
-def soil_moisture(gdf,xds):
+def soil_moisture(gdf,soil_moisture_path):
+    """Assigns soil moisture values for each linestring segment
+
+    Args:
+        gdf (GeoDataFrame): GeoDataFrame with linestrings
+
+        soil_moisture_path (str): path for oil moisture dataset
+
+    Returns:
+        float: soil moisture content (%)
+    """
     #Abrindo o dataset do CMIP
     xds = xr.open_mfdataset('/home/brunojalowski/Documentos/RD_Vehic_Resusp/dados_entrada/Soil Moisture/METCRO2D_BR_20km_2023-02-01.nc')
         
