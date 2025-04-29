@@ -12,7 +12,7 @@ from emissions import gdf_filtered
 import matplotlib.pyplot as plt
 import netcdf4_conversions_v2 as conv
 import numpy as np
-from shapely.geometry import box
+from shapely.geometry import box, LineString
 import geopandas as gpd
 import xarray as xr
 from mpl_toolkits.axes_grid1 import make_axes_locatable
@@ -64,14 +64,13 @@ for i in range(len(lat_edges) - 1):
 # Turns it into a GeoDataFrame
 grid = gpd.GeoDataFrame(geometry=grid_cells, crs="EPSG:4326")
 
-#%%
-# Plotting grid over dataset to see if it fits
+#%% Plotting grid over dataset to see if it fits
 fig, ax = plt.subplots(figsize=(15, 10))
 xr.plot.pcolormesh(darray=soil_moisture[0,0,:,:],ax=ax)
 grid.boundary.plot(ax=ax, color='gray', linestyle='--', linewidth=0.5)
 
 
-#%%
+#%% Function to calculate emission boy pixel
 
 def emissions_by_pixel(cell, pollutant, emissions):
     """ This function calculates the total amount emitted within the boundaries of the selected cell.
@@ -106,7 +105,7 @@ def emissions_by_pixel(cell, pollutant, emissions):
     return (intersected_lines[pollutant] * intersected_lines["weight_factor"]).sum()
 
 #%% Apply function to all grid cells for PM2.5 emissions
-valores = []
+"""valores = []
 for i in grid.index:
         cell = grid.geometry[i]
         valor = emissions_by_pixel(cell, '25_emission', gdf_filtered)
@@ -116,7 +115,7 @@ for i in grid.index:
             valores.append(None)
 
 grid['25_emission'] = valores
-
+"""
 #%% Applies emissions_by_pixel function to all grid cells for each PM size
 
 all_values = []
@@ -136,7 +135,30 @@ grid['25_emission'] = all_values[0]
 grid['10_emission'] = all_values[1]
 grid['30_emission'] = all_values[2]
 
+#%%Teste de da função de intersecção
+"""
+# célula de teste
+cell = box(1, 1, 11, 11)
 
+# Linha com metade para dentro da célula
+line = LineString([(-5, 5), (5, 5)])
+
+# Criando GeoDataFrame
+gdf = gpd.GeoDataFrame({
+    'pollutant': [100],  # EMISSOA TOTAL
+    'geometry': [line]
+}, geometry='geometry')
+
+result = emissions_by_pixel(cell, 'pollutant', gdf)
+print("Resultado da função:", result)
+
+# Plotando visualização
+fig, ax = plt.subplots()
+gpd.GeoSeries(cell).plot(ax=ax, facecolor='none', edgecolor='red')
+gdf.plot(ax=ax, color='blue')
+plt.show()
+
+"""
 
 #%% PLOT DE FLUXOS
 fig, ax = plt.subplots()
@@ -176,7 +198,7 @@ ax.set_facecolor('grey')
 plt.tight_layout()
 
 
-#%%
+#%% PLOTTING PM2.5 EMISSIONS, FLUX AND THEM OVERLAPED
 fig, ax = plt.subplots(1,3, figsize=(12,8))
 minx, miny, maxx, maxy = gdf_filtered.total_bounds
 
@@ -274,7 +296,7 @@ ax[2].set_facecolor('grey')
 ax[2].tick_params(axis='both', labelsize=8)
 plt.tight_layout()
 
-#%% SOBREPOSIÇÃO FLUXO E EMISSOES
+#%% PLOTTING FLUX x EMISSIONS
 fig, ax = plt.subplots(figsize=(8,8))
 minx, miny, maxx, maxy = gdf_filtered.total_bounds
 
@@ -329,7 +351,7 @@ ax.set_facecolor('grey')
 ax.tick_params(axis='both', labelsize=8)
 plt.tight_layout()
 
-#%%
+#%% PLOTTING EMISSIONS x FLOW OF 3 PM SIZES
 
 fig, axes = plt.subplots(1, 3, figsize=(20, 6))  
 
@@ -347,7 +369,7 @@ for ax, pollutant, title, cmap in zip(axes, pollutants, titles, cmaps):
     vmax_p = gdf_filtered[pollutant].max()
     norm_p = colors.LogNorm(vmin=vmin_p, vmax=vmax_p)
 
-    grid.plot(ax=ax, column=pollutant, cmap=cmap, linewidth=0.8, alpha=0.8)
+    grid.plot(ax=ax, column=pollutant, cmap=cmaps[2], linewidth=0.8, alpha=0.8)
     gdf_filtered.plot(ax=ax, column='flow', cmap='RdGy', norm=norm_flow, linewidth=1.2)
 
     divider = make_axes_locatable(ax)

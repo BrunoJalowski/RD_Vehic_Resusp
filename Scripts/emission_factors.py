@@ -10,13 +10,13 @@ def emission_paved_roads(pm: float, silt_loading: float, weight: float) -> float
         pm (float): particulate matter size class to be estimated 
             There are 4 valid options (2.5, 10, 15 and 30)
 
-        silt_loading (float):
+        silt_loading (float): silt loading on the surface of the road (g/m²)
             Maximum statistical quality within the range of 0,03 - 400 g/m²
 
         weight (float): average weight (tons) of the vehicles traveling the road
 
     Returns:
-        float: emission factor for the chosen particulate matter size class
+        float: emission factor for the chosen particulate matter size class (VKT)
     """
 
     pm_options = {'2.5': 0.15 ,
@@ -45,10 +45,10 @@ def emission_unpaved_industrial(pm: float, silt_fraction: float, weight: float) 
 
         silt_fraction (float): surface material silt content (%)
 
-        weight (float): _description_
+        weight (float): average weight (tons) of the vehicles traveling the road
 
     Returns:
-        float: _description_
+        float:  emission factor for the chosen particulate matter size class (g/VKT)
     """
 
     constants = pd.DataFrame(data = {'k': [0.15, 1.5, 4.9],
