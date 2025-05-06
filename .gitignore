@@ -14,3 +14,5 @@ References/
 Vehicular_Weight/
 Silt_Fraction/
 Soil_Moisture/
+.ipynb_checkpoints
+__pycache__
