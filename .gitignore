@@ -1,16 +1,12 @@
 venv/
-Script Requisição TomTom/
 dados_entrada/
-outputs/
-tiles/
 Outputs/
-Inputs/
-inputs/
-dados/
 Presentations/
 FlowCharts/
 BRAVES/
 References/
-Vehicular_Weight/
-Silt_Fraction/
-Soil_Moisture/
+<<<<<<< HEAD
+=======
+.ipynb_checkpoints
+__pycache__
+>>>>>>> 258187de1c3600057791b7d336b8015d5a24a407
