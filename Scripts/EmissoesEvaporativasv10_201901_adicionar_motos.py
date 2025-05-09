@@ -36,14 +36,22 @@ caminho_arquivos_consumo_comb = r"Consumo_combustivel_mensal/1_janeiro_2019"
 ## Definição de variáveis globais
 # Dicionário de correspondência entre estados e siglas
 estados_brasileiros = {
-    "ACRE": "AC", "ALAGOAS": "AL","AMAPA": "AP","AMAZONAS": "AM","BAHIA": "BA","CEARA": "CE","DISTRITO FEDERAL": "DF","ESPIRITO SANTO": "ES","GOIAS": "GO","MARANHAO": "MA",
-    "MATO GROSSO": "MT", "MATO GROSSO DO SUL": "MS","MINAS GERAIS": "MG","PARA": "PA","PARAIBA": "PB","PARANA": "PR","PERNAMBUCO": "PE","PIAUI": "PI","RIO DE JANEIRO": "RJ",
-    "RIO GRANDE DO NORTE": "RN","RIO GRANDE DO SUL": "RS","RONDONIA": "RO","RORAIMA": "RR","SANTA CATARINA": "SC","SAO PAULO": "SP","SERGIPE": "SE","TOCANTINS": "TO"}
+    "ACRE": "AC", "ALAGOAS": "AL","AMAPA": "AP","AMAZONAS": "AM","BAHIA": "BA",
+    "CEARA": "CE","DISTRITO FEDERAL": "DF","ESPIRITO SANTO": "ES","GOIAS": "GO",
+    "MARANHAO": "MA", "MATO GROSSO": "MT", "MATO GROSSO DO SUL": "MS",
+    "MINAS GERAIS": "MG","PARA": "PA","PARAIBA": "PB","PARANA": "PR",
+    "PERNAMBUCO": "PE","PIAUI": "PI","RIO DE JANEIRO": "RJ",
+    "RIO GRANDE DO NORTE": "RN","RIO GRANDE DO SUL": "RS","RONDONIA": "RO",
+    "RORAIMA": "RR","SANTA CATARINA": "SC","SAO PAULO": "SP","SERGIPE": "SE",
+    "TOCANTINS": "TO"}
 
 # Dicionário para mapear nomes dos meses para números
-meses_para_numeros = {'janeiro': 1, 'fevereiro': 2,'marco': 3,'abril': 4,'maio': 5,'junho': 6,'julho': 7,'agosto': 8,'setembro': 9,'outubro': 10,'novembro': 11,'dezembro': 12}
+meses_para_numeros = {'janeiro': 1, 'fevereiro': 2,'marco': 3,'abril': 4,
+                      'maio': 5,'junho': 6,'julho': 7,'agosto': 8,
+                      'setembro': 9,'outubro': 10,'novembro': 11,'dezembro': 12}
 
-meses_para_numeros2 = {'jan': 1, 'fev': 2,'mar': 3,'abr': 4,'mai': 5,'jun': 6,'jul': 7,'ago': 8,'set': 9,'out': 10,'nov': 11,'dez': 12}
+meses_para_numeros2 = {'jan': 1, 'fev': 2,'mar': 3,'abr': 4,'mai': 5,'jun': 6,
+                       'jul': 7,'ago': 8,'set': 9,'out': 10,'nov': 11,'dez': 12}
 
 # Definição do mapeamento de combustíveis
 mapa_combustivel = {
@@ -1595,22 +1603,41 @@ def adicionando_prob_ano_modelo(matriz, frota_processada_probAnoModelo, nome_col
 
 #%% Adicionando Probabilidade uso de combustível por período
 
-def processar_probabilidades_combustivel_leves(matriz_com_Etanol, matriz_sem_Etanol, frota_proporcao_82, frota_proporcao_2003, frota_proporcao_2007):
+def processar_probabilidades_combustivel_leves(matriz_com_Etanol, 
+                                               matriz_sem_Etanol,
+                                               frota_proporcao_82,
+                                               frota_proporcao_2003,
+                                               frota_proporcao_2007):
     
     """
-    Processa e atribui as probabilidades de uso de combustível para veículos leves, considerando diferentes períodos de fabricação e disponibilidade de combustíveis 
-    em cada período
+    Processa e atribui as probabilidades de uso de combustível para veículos 
+    leves, considerando diferentes períodos de fabricação e disponibilidade 
+    de combustíveis em cada período
 
     Parâmetros:
-        matriz_com_Etanol (DataFrame): Dados dos veículos em cidades que vendem etanol
-        matriz_sem_Etanol (DataFrame): Dados dos veículos em cidades que não vendem etanol
-        frota_proporcao_82 (DataFrame): Proporção de uso de combustível para veículos fabricados até 2002 (Gasolina e Etanol)
-        frota_proporcao_2003 (DataFrame): Proporção de uso de combustível para veículos fabricados entre 2003 e 2006 (Gasolina, Etanol, Flex Gasolina e Flex Etanol)
-        frota_proporcao_2007 (DataFrame): Proporção de uso de combustível para veículos fabricados a partir de 2007 (Gasolina, Flex Gasolina e Flex Etanol)
+        matriz_com_Etanol (DataFrame): Dados dos veículos em cidades que vendem
+            etanol
+            
+        matriz_sem_Etanol (DataFrame): Dados dos veículos em cidades que não 
+            vendem etanol
+            
+        frota_proporcao_82 (DataFrame): Proporção de uso de combustível para 
+            veículos fabricados até 2002 (Gasolina e Etanol)
+        
+        frota_proporcao_2003 (DataFrame): Proporção de uso de combustível para
+            veículos fabricados entre 2003 e 2006 (Gasolina, Etanol, Flex 
+            Gasolina e Flex Etanol)
+        
+        frota_proporcao_2007 (DataFrame): Proporção de uso de combustível para
+            veículos fabricados a partir de 2007 (Gasolina, Flex Gasolina e 
+            Flex Etanol)
 
     Retorna:
-        DataFrame: Atualizado com a coluna de probabilidade de uso do combustível atribuída, para municípios que vendem etanol
-        DataFrame: Atualizado com a coluna de probabilidade de uso do combustível atribuída, para municípios que não vendem etanol
+        DataFrame: Atualizado com a coluna de probabilidade de uso do 
+            combustível atribuída, para municípios que vendem etanol
+        
+        DataFrame: Atualizado com a coluna de probabilidade de uso do
+            combustível atribuída, para municípios que não vendem etanol
     """
     
     def segmentar_e_atribuir_proporcao(df, frota_proporcao, grupo_anos):
