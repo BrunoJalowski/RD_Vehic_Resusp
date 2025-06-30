@@ -13,15 +13,19 @@ import glob
 import matplotlib.pyplot as plt
 import geopandas as gpd
 import math
+from long_2_utm_zone import long_2_utm_zone
+from utm_zone_2_epsg import utm_zone_2_epsg
 
-#%% PATH
+# %% PATH
 project_path = Path('/home/brunojalowski/Documentos/RD_Vehic_Resusp/dados_entrada')
 industrial_path = project_path /'Industrias'
 mining_path = industrial_path / 'MiningBR'
 cnpj_path = industrial_path / 'PessoasJuridicas'
-landfills_path = industrial_path / 'SINISA_RESIDUOS_Planilhas_2023/SINISA_RESIDUOS_Informacoes_Formulario_Infraestrutura_Destinacao_Final_2023.xlsx'
+landfills_path = industrial_path / 'SINISA_RESIDUOS_Planilhas_2023/'
+'SINISA_RESIDUOS_Informacoes_Formulario_Infraestrutura_Destinacao_Final'
+'_2023.xlsx'
 
-#%% Fusão de todas as planilhas de Pessoas Juridicas
+# %% Fusão de todas as planilhas de Pessoas Juridicas
 files = glob.glob(str(cnpj_path / '*.csv'))
 main_df = pd.read_csv(files[0], sep='\t', skiprows=2)
 
@@ -31,7 +35,7 @@ for file in files[1:]:
 
 del opened, files, file
 
-#%% Filtrando
+# %% Filtrando
 
 """Filtrando:
     - categorias industriais (1-16)
@@ -65,11 +69,11 @@ main_df = main_df.loc[(main_df['Código da categoria'] < 17) &
 
 
 
-#%% 
+# %%
 "Obtenção e tratamento dos dados de aterros sanitários no Brasil"
 
 
-landfill = pd.read_excel(landfills_path, engine='openpyxl', skiprows=10 )
+landfill = pd.read_excel(landfills_path, engine='openpyxl', skiprows=10)
 
 #%% Determinação dos códigos de cada coluna para deixar mais sucinto
 dicts = {}
@@ -132,12 +136,24 @@ landfill_points = landfill.loc[(~pd.isna(landfill['GTR3203*']) &
                                ['CAD1000 ','GTR3202*','GTR3203*','GTR3204*']]
 
 # Limpando os dados de coordenadas
-landfill_points.loc[:, 'GTR3203*'] = landfill_points.loc[:, 'GTR3203*'].str.split().str[-1]
-landfill_points.loc[:, 'GTR3204*'] = landfill_points.loc[:, 'GTR3204*'].str.split().str[-1]
+landfill_points.loc[:, 'GTR3203*'] = (landfill_points
+                                      .loc[:, 'GTR3203*']
+                                      .str.split()
+                                      .str[-1])
+
+landfill_points.loc[:, 'GTR3204*'] = (landfill_points
+                                      .loc[:, 'GTR3204*']
+                                      .str.split()
+                                      .str[-1])
 
 # Transformando em float
-landfill_points.loc[:, 'GTR3203*'] = landfill_points.loc[:, 'GTR3203*'].astype(float)
-landfill_points.loc[:, 'GTR3204*'] = landfill_points.loc[:, 'GTR3204*'].astype(float)
+landfill_points.loc[:, 'GTR3203*'] = (landfill_points
+                                      .loc[:, 'GTR3203*']
+                                      .astype(float))
+
+landfill_points.loc[:, 'GTR3204*'] = (landfill_points
+                                      .loc[:, 'GTR3204*']
+                                      .astype(float))
 
 # Renomeando os códigos para os nomes mais sucintos
 landfill_points = landfill_points.rename(columns={'CAD1000 ':'CNPJ',
@@ -156,8 +172,11 @@ landfill_gdf = gpd.GeoDataFrame(landfill_points,
 landfill_gdf = landfill_gdf.reset_index(drop=True)
 
 #%% Criando coluna do Código EPSG 
-from lat_long_2_utm_datum import lat_long_2_sirgas_utm
 
-landfill_gdf.loc[:,'EPSG'] = lat_long_2_sirgas_utm(landfill_gdf.Lat,landfill_gdf.Lon) 
-#FIXME
+# Pegando zona utm a partir da longitude
+landfill_gdf.loc[:,'EPSG'] = long_2_utm_zone(landfill_gdf['Lon']) 
 
+# Atribuindo código EPSG SIRGAS 2000 projetado de acordo com a zona 
+# UTM e a latitude
+landfill_gdf.loc[:,'EPSG'] = utm_zone_2_epsg(landfill_gdf['EPSG'],
+                                             landfill_gdf['Lat'])

@@ -7,4 +7,5 @@ BRAVES/
 References/
 .ipynb_checkpoints
 __pycache__
+.spyproject/ 
 
