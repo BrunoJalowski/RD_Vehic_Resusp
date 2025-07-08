@@ -32,7 +32,7 @@ def emission_paved_roads(pm: float,
 
     k = pm_options[str(pm)]
 
-    emission_factor = k * pow(silt_loading, 0.91) * pow(weight, 1.02)
+    emission_factor = k * pow(silt_loading, 0.912) * pow(weight, 1.021)
 
     return emission_factor
 

@@ -15,15 +15,16 @@ import geopandas as gpd
 import math
 from long_2_utm_zone import long_2_utm_zone
 from utm_zone_2_epsg import utm_zone_2_epsg
+import regex as re
 
 # %% PATH
 project_path = Path('/home/brunojalowski/Documentos/RD_Vehic_Resusp/dados_entrada')
 industrial_path = project_path /'Industrias'
 mining_path = industrial_path / 'MiningBR'
 cnpj_path = industrial_path / 'PessoasJuridicas'
-landfills_path = industrial_path / 'SINISA_RESIDUOS_Planilhas_2023/'
-'SINISA_RESIDUOS_Informacoes_Formulario_Infraestrutura_Destinacao_Final'
-'_2023.xlsx'
+landfills_path = (industrial_path / 'SINISA_RESIDUOS_Planilhas_2023/'
+                  'SINISA_RESIDUOS_Informacoes_Formulario_Infraestrutura'
+                  '_Destinacao_Final_2023.xlsx')
 
 # %% Fusão de todas as planilhas de Pessoas Juridicas
 files = glob.glob(str(cnpj_path / '*.csv'))
@@ -33,49 +34,86 @@ for file in files[1:]:
     opened = pd.read_csv(file, sep='\t', skiprows=2)
     main_df = pd.merge(main_df, opened, how='outer')
 
+
 del opened, files, file
+
+# %% Replacing commas with dots in the coordinates
+main_df.Latitude = (main_df['Latitude']
+                    .str.replace(',', '.', regex=False)
+                    .astype(float))
+main_df.Longitude = (main_df['Longitude']
+                     .str.replace(',', '.', regex=False)
+                     .astype(float))
 
 # %% Filtrando
 
 """Filtrando:
     - categorias industriais (1-16)
     - em situação cadastral ativa
-    - com data de término não estabelecida, logo ainda funcionando
-    - FILTRAR POR ATIVIDADE
     """
 main_df = main_df.loc[(main_df['Código da categoria'] < 17) &
-                      (main_df['Situação cadastral'] == 'Ativa') &
-                      (pd.isna(main_df['Data de término da atividade'])), :]
+                      (main_df['Situação cadastral'] == 'Ativa'), :]
 
-#FIXME
-
-
-
-
-
-
+# %% Creating geometry column
+main_gdf = gpd.GeoDataFrame(main_df,
+                            geometry=gpd.points_from_xy(main_df.Longitude,
+                                                        main_df.Latitude,
+                                                        crs='EPSG:4326'))
+del main_df
 
 
+# %% Getting UTM zone for each point
+
+# Creating column with UTM zone for each point
+main_gdf['EPSG'] = long_2_utm_zone(main_gdf['Longitude'])
+
+# Removing points outside of Brazil
+main_gdf = main_gdf.dropna()
+main_gdf = main_gdf.loc[(main_gdf['Longitude'] != 0) |
+                         (main_gdf['Latitude'] != 0)]
+
+# Creating column with EPSG code
+main_gdf['EPSG'] = utm_zone_2_epsg(main_gdf['EPSG'],
+                                   main_gdf['Latitude'])
+
+# %% CREATING BUFFERS
+
+# Creating epsg dictionary
+choices = {'{}'.format(q): q for q in main_gdf['EPSG'].unique()}
+
+# Creating sub dataframes and buffers
+for epsg in choices.keys():
+    
+     # Creating sub dataframe and setting respective crs
+     choices[epsg] = main_gdf[main_gdf['EPSG'] == epsg].to_crs(epsg)
+     
+     # Creating buffers in km and converting to WGS 84
+     choices[epsg]['buffer_2km'] = choices[epsg].buffer(2000).to_crs(4326)
+     choices[epsg]['buffer_5km'] = choices[epsg].buffer(5000).to_crs(4326)
+     
+     # Reprojecting geometry of each sub dataframe to WGS 84
+     choices[epsg] = choices[epsg].to_crs(4326)
+     
+# Concatenating sub gds back to main gdf
+industrial_gdf = gpd.GeoDataFrame(pd.concat([choices[df] for df in choices])) 
+
+# %% Plotting industrial sites
+# =============================================================================
+# fig, ax = plt.subplots(figsize=(10,10))
+# industrial_gdf['buffer_2km'].plot(ax=ax, facecolor='none')
+# industrial_gdf['buffer_5km'].plot(ax=ax, facecolor='none')
+# 
+# 
+# =============================================================================
 
 
 
+# %% LANDFILL SITES
 
-
-
-
-
-
-
-
-
-
-# %%
-"Obtenção e tratamento dos dados de aterros sanitários no Brasil"
-
-
+# Reading list of brazilian landfills from SINISA
 landfill = pd.read_excel(landfills_path, engine='openpyxl', skiprows=10)
 
-#%% Determinação dos códigos de cada coluna para deixar mais sucinto
+#%% COLUMN CODES AND NAMES
 dicts = {}
 for column in landfill.columns:
     dicts[landfill.loc[1,column]] = column
@@ -126,10 +164,10 @@ for column in landfill.columns:
 
 del column
 
-#%% Abrindo dataframe com os codigos como nome de coluna
+#%% Opening dataframe with codes as column names
 landfill = pd.read_excel(landfills_path, engine='openpyxl', skiprows=12 )
     
-#%% Separando as colunas importantes
+#%% Filtering importante columns
 
 landfill_points = landfill.loc[(~pd.isna(landfill['GTR3203*']) &
                                ~pd.isna(landfill['GTR3204*'])),
@@ -157,26 +195,63 @@ landfill_points.loc[:, 'GTR3204*'] = (landfill_points
 
 # Renomeando os códigos para os nomes mais sucintos
 landfill_points = landfill_points.rename(columns={'CAD1000 ':'CNPJ',
-                                                  'GTR3203*':'Lat',
-                                                  'GTR3204*':'Lon',
+                                                  'GTR3203*':'Latitude',
+                                                  'GTR3204*':'Longitude',
                                                   'GTR3202*':'Nome'})
 
 #%%
 # Criando gdf de pontos por meio das coordenadas
-landfill_gdf = gpd.GeoDataFrame(landfill_points, 
-                                geometry = gpd.points_from_xy(landfill_points.Lon,
-                                                              landfill_points.Lat),
-                                crs="EPSG:4326")
-
+landfill_gdf = (
+    gpd.GeoDataFrame(landfill_points,
+                     geometry = gpd.points_from_xy(landfill_points.Longitude,
+                                                   landfill_points.Latitude),
+                     crs="EPSG:4326")
+    )
 # Resetando indice
 landfill_gdf = landfill_gdf.reset_index(drop=True)
 
-#%% Criando coluna do Código EPSG 
+# %% Criando coluna do Código EPSG 
 
 # Pegando zona utm a partir da longitude
-landfill_gdf.loc[:,'EPSG'] = long_2_utm_zone(landfill_gdf['Lon']) 
+landfill_gdf.loc[:,'utm_zone'] = long_2_utm_zone(landfill_gdf['Longitude']) 
 
 # Atribuindo código EPSG SIRGAS 2000 projetado de acordo com a zona 
 # UTM e a latitude
-landfill_gdf.loc[:,'EPSG'] = utm_zone_2_epsg(landfill_gdf['EPSG'],
-                                             landfill_gdf['Lat'])
+landfill_gdf.loc[:,'EPSG'] = utm_zone_2_epsg(landfill_gdf['utm_zone'],
+                                             landfill_gdf['Latitude'])
+
+# %%
+# Creating epsg dictionary
+choices = {'{}'.format(q): q for q in landfill_gdf['EPSG'].unique()}
+
+# Creating sub dataframes and buffers
+for epsg in choices.keys():
+    
+     # Creating sub dataframe and setting respective crs
+     choices[epsg] = landfill_gdf[landfill_gdf['EPSG'] == epsg].to_crs(epsg)
+     
+     # Creating buffers in km and converting to WGS 84
+     choices[epsg]['buffer_2km'] = choices[epsg].buffer(2000).to_crs(4326)
+     choices[epsg]['buffer_5km'] = choices[epsg].buffer(5000).to_crs(4326)
+     
+     # Reprojecting geometry of each sub dataframe to WGS 84
+     choices[epsg] = choices[epsg].to_crs(4326)
+     
+# Concatenating sub gds back to main gdf
+landfill_gdf = gpd.GeoDataFrame(pd.concat([choices[df] for df in choices])) 
+
+# =============================================================================
+# fig, ax = plt.subplots(figsize=(10,10))
+# landfill_gdf['buffer_2km'].plot(ax=ax, facecolor='none')
+# landfill_gdf['buffer_5km'].plot(ax=ax, facecolor='none')
+# =============================================================================
+
+# %% CONCATENATING LANDFILL AND OTHER INDUSTRIAL ACTIVITIES
+industrial_gdf = pd.concat([industrial_gdf,landfill_gdf])
+
+# =============================================================================
+# fig, ax = plt.subplots(figsize=(10,10))
+# #industrial_gdf.plot(ax=ax)
+# industrial_gdf['buffer_2km'].plot(ax=ax, facecolor='none')
+# industrial_gdf['buffer_5km'].plot(ax=ax, facecolor='none')
+# =============================================================================
