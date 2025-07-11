@@ -16,11 +16,12 @@ import math
 from long_2_utm_zone import long_2_utm_zone
 from utm_zone_2_epsg import utm_zone_2_epsg
 import regex as re
+import fiona
 
 # %% PATH
 project_path = Path('/home/brunojalowski/Documentos/RD_Vehic_Resusp/dados_entrada')
 industrial_path = project_path /'Industrias'
-mining_path = industrial_path / 'MiningBR'
+mining_path = industrial_path / 'MiningBR/BRASIL_FILTRADO.shp'
 cnpj_path = industrial_path / 'PessoasJuridicas'
 landfills_path = (industrial_path / 'SINISA_RESIDUOS_Planilhas_2023/'
                   'SINISA_RESIDUOS_Informacoes_Formulario_Infraestrutura'
@@ -97,6 +98,8 @@ for epsg in choices.keys():
 # Concatenating sub gds back to main gdf
 industrial_gdf = gpd.GeoDataFrame(pd.concat([choices[df] for df in choices])) 
 
+del main_gdf, choices
+
 # %% Plotting industrial sites
 # =============================================================================
 # fig, ax = plt.subplots(figsize=(10,10))
@@ -105,6 +108,31 @@ industrial_gdf = gpd.GeoDataFrame(pd.concat([choices[df] for df in choices]))
 # 
 # 
 # =============================================================================
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -162,7 +190,7 @@ for column in landfill.columns:
  'GTR3236*': 'Quantidade de energia elétrica gerada'}
 """
 
-del column
+del column, dicts
 
 #%% Opening dataframe with codes as column names
 landfill = pd.read_excel(landfills_path, engine='openpyxl', skiprows=12 )
@@ -172,6 +200,7 @@ landfill = pd.read_excel(landfills_path, engine='openpyxl', skiprows=12 )
 landfill_points = landfill.loc[(~pd.isna(landfill['GTR3203*']) &
                                ~pd.isna(landfill['GTR3204*'])),
                                ['CAD1000 ','GTR3202*','GTR3203*','GTR3204*']]
+del landfill
 
 # Limpando os dados de coordenadas
 landfill_points.loc[:, 'GTR3203*'] = (landfill_points
@@ -219,8 +248,9 @@ landfill_gdf.loc[:,'utm_zone'] = long_2_utm_zone(landfill_gdf['Longitude'])
 # UTM e a latitude
 landfill_gdf.loc[:,'EPSG'] = utm_zone_2_epsg(landfill_gdf['utm_zone'],
                                              landfill_gdf['Latitude'])
+landfill_gdf.drop(columns='utm_zone', inplace=True)
 
-# %%
+# %% CREATING BUFFERS
 # Creating epsg dictionary
 choices = {'{}'.format(q): q for q in landfill_gdf['EPSG'].unique()}
 
@@ -236,10 +266,12 @@ for epsg in choices.keys():
      
      # Reprojecting geometry of each sub dataframe to WGS 84
      choices[epsg] = choices[epsg].to_crs(4326)
-     
+
+
 # Concatenating sub gds back to main gdf
 landfill_gdf = gpd.GeoDataFrame(pd.concat([choices[df] for df in choices])) 
 
+del epsg, choices
 # =============================================================================
 # fig, ax = plt.subplots(figsize=(10,10))
 # landfill_gdf['buffer_2km'].plot(ax=ax, facecolor='none')
@@ -247,11 +279,26 @@ landfill_gdf = gpd.GeoDataFrame(pd.concat([choices[df] for df in choices]))
 # =============================================================================
 
 # %% CONCATENATING LANDFILL AND OTHER INDUSTRIAL ACTIVITIES
-industrial_gdf = pd.concat([industrial_gdf,landfill_gdf])
+industrial_gdf = pd.concat([industrial_gdf,landfill_gdf]).reset_index()
+
+del landfill_gdf
+
+industrial_gdf.loc[~pd.isna(industrial_gdf['Nome']),
+                   'Razão Social'] = industrial_gdf['Nome']
+
+industrial_gdf.drop(columns='Nome', inplace=True)
 
 # =============================================================================
 # fig, ax = plt.subplots(figsize=(10,10))
-# #industrial_gdf.plot(ax=ax)
+# #industr/ial_gdf.plot(ax=ax)
 # industrial_gdf['buffer_2km'].plot(ax=ax, facecolor='none')
 # industrial_gdf['buffer_5km'].plot(ax=ax, facecolor='none')
 # =============================================================================
+
+
+# %% MINING SITES
+
+# Opening mining sites geodataframe
+mining_gdf = gpd.read_file(mining_path, engine='fiona')
+
+# 

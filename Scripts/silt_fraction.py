@@ -15,14 +15,17 @@ import rioxarray as rxr
 import glob
 from pathlib import Path
 import matplotlib.pyplot as plt
-from main import gdf_filtered
+from road_preprocess import gdf
 import xarray as xr
 from rasterio.enums import Resampling
 import numpy as np
+import geopandas as gpd
+from rasterio.features import shapes
 
 #%% PATH
 project_path = Path('/home/brunojalowski/Documentos/RD_Vehic_Resusp/dados_entrada')
 silt_fraction_path = project_path /'Silt_Fraction'
+
 
 #%% Opening file
 files = glob.glob(str(silt_fraction_path / '*.tif'))
@@ -51,9 +54,9 @@ silt_fraction = silt_fraction.rio.reproject(silt_fraction.rio.crs, shape=(int(ne
 """
 fig, ax = plt.subplots()
 xr.plot.pcolormesh(darray=silt_fraction['band_1'][:,:],ax=ax)
-gdf_filtered.plot(ax=ax, color="r")
+gdf.plot(ax=ax, color="r")
 
-minx, miny, maxx, maxy = gdf_filtered.total_bounds
+minx, miny, maxx, maxy = gdf.total_bounds
 ax.set_xlim(minx-0.01, maxx+0.01)
 ax.set_ylim(miny-0.01, maxy+0.01)
 
@@ -66,9 +69,11 @@ plt.show()
 del minx, miny, maxy, maxx
 
 """
-#%%Designando valores de teor de silte para cada trecho de via
+#%% MÈTODO 1
+
+# Designando valores de teor de silte para cada trecho de via
 values = []
-for _, row in gdf_filtered.iterrows():
+for _, row in gdf.iterrows():
     line = row['geometry']  
 
     if line.geom_type == 'LineString':
@@ -87,8 +92,8 @@ for _, row in gdf_filtered.iterrows():
         values.append(None)  
 
 
-gdf_filtered['silt_fraction'] = values
-gdf_filtered.loc[:,'silt_fraction'] = gdf_filtered.loc[:,'silt_fraction'].str[0]
+gdf['silt_fraction'] = values
+gdf.loc[:,'silt_fraction'] = gdf.loc[:,'silt_fraction'].str[0]
 
 del lat, lat_idx, line, line_values,lon,lon_idx,point,row
 
@@ -96,9 +101,9 @@ del lat, lat_idx, line, line_values,lon,lon_idx,point,row
 """
 fig, ax = plt.subplots(figsize=(10, 10))
 xr.plot.pcolormesh(darray=silt_fraction['band_1'],ax=ax, alpha=0.5)
-gdf_filtered.plot(column='silt_fraction', ax=ax, cmap='viridis')  
+gdf.plot(column='silt_fraction', ax=ax, cmap='viridis')  
 
-minx, miny, maxx, maxy = gdf_filtered.total_bounds
+minx, miny, maxx, maxy = gdf.total_bounds
 ax.set_xlim(minx-0.01, maxx+0.01)
 ax.set_ylim(miny-0.01, maxy+0.01)
 
@@ -153,3 +158,21 @@ def silt_fraction(gdf, raster):
     del lat, lat_idx, line, line_values,lon,lon_idx,point,row
     
     return gdf
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# %% MÉTODO 2
+

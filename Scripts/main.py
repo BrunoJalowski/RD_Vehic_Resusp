@@ -18,6 +18,7 @@ import glob
 from rasterio.enums import Resampling
 import rioxarray as rxr
 import regex as re
+from shapely.geometry import box, LineString
 
 # %% Paths
 project_path = Path('/home/brunojalowski/Documentos/RD_Vehic_Resusp/'
@@ -27,8 +28,8 @@ soil_moisture_path = (project_path /
 silt_fraction_path = (project_path /
                       'Silt_Fraction')
 flow_path = (project_path /
-             'vehicle_count_daily-2025-05-28 00_00_00_to_2025-06-23 00_00_00_'
-             'rev1.parquet')
+             'vehicle_count_daily-2025-07-09 00:00:00_to_2025-07-10 00:00:00'
+             '_rev1.parquet')
 
 fleet_path = ('/home/brunojalowski/Documentos/RD_Vehic_Resusp/dados_entrada/'
               'FrotapormunicipioetipoDezembro2024.xlsx')
@@ -36,62 +37,55 @@ fleet_path = ('/home/brunojalowski/Documentos/RD_Vehic_Resusp/dados_entrada/'
 # %% FUNCTIONS
 
 # SOIL MOISTURE
-def assign_soil_moisture(gdf, soil_moisture):
+def assigning_soil_moisture(line: LineString,
+                            grid: gpd.GeoDataFrame) -> float:
     """
-    Assigns soil moisture values for each point of each linestring
-    
-    Args:
-        gdf: GeoDataFrame contendo as estradas (LineStrings)
-        soil_moisture: Dataset xarray com os valores de umidade do solo
-        
-    Returns:
-        GeoDataFrame with columns for soil moisture values, mean values,
-        standard deviation and point count for each road.
+    Calculates the average soil moisture value for each road segment weighted
+    by the length inside each pixel.
+
+    Parameters
+    ----------
+    line : LineString
+        ROAD SEGMENT FROM ROAD VECTOR DATAFRAME.
+    grid : gpd.GeoDataFrame
+        VECTOR GRID MADE FROM VECTORIZING RASTER/XARRAY.
+
+    Returns
+    -------
+    float
+        WEIGHTED AVERAGE FOR SOIL MOISTURE.
+
     """
-    # Initializing arrays
-    all_values = []
-    means = np.empty(len(gdf))
-    stds = np.empty(len(gdf))
-    counts = np.empty(len(gdf))
     
-    # Obtaining soil moisture dataset coordinates
-    soil_lons = soil_moisture['lon'].values
-    soil_lats = soil_moisture['lat'].values
-    soil_values = soil_moisture.values
+    # Selects only cells that intersect with the linestring
+    intersected_cells = grid[grid.intersects(line)].copy()
+    if intersected_cells.empty:
+        return np.nan
     
-    for i, line in enumerate(gdf.geometry):
-        if line.is_empty:
-            all_values.append([])
-            means[i] = np.nan
-            stds[i] = np.nan
-            counts[i] = 0
-            continue
-            
-        # Extracting coordinates from points
-        coords = np.array(line.coords)
-        lons = coords[:, 0]
-        lats = coords[:, 1]
-        
-        # Finding closest indexes
-        lon_idx = np.argmin(np.abs(soil_lons - lons[:, np.newaxis]), axis=1)
-        lat_idx = np.argmin(np.abs(soil_lats - lats[:, np.newaxis]), axis=1)
-        
-        # Obtaining values
-        values = soil_values[lat_idx, lon_idx]
-        all_values.append(values.tolist())
-        
-        # Calculating statistics
-        means[i] = np.nanmean(values)
-        stds[i] = np.nanstd(values)
-        counts[i] = len(values)
+    # Gets line total length
+    intersected_cells["total_length"] = (line
+                                         .length)
     
-    # Adding to GeoDataFrame
-    gdf['soil_moisture'] = all_values
-    gdf['soil_mean'] = means
-    gdf['soil_std'] = stds
-    gdf['point_count'] = counts
+    # Gets length of line inside each cell
+    intersected_cells["intersected_length"] = (intersected_cells
+                                               .geometry
+                                               .intersection(line)
+                                               .length)
     
-    return gdf
+    # Weight factor
+    intersected_cells["weight_factor"] = (
+        intersected_cells["intersected_length"] /
+        intersected_cells["total_length"]
+        )
+    
+    # Soil moisture weighted average
+    weighted_average = (
+        intersected_cells['weight_factor'] *
+        intersected_cells['value']
+        ).sum()
+    
+    return weighted_average
+
 
 # SILT FRACTION
 def assign_silt_fraction(gdf, raster):
@@ -105,8 +99,7 @@ def assign_silt_fraction(gdf, raster):
     raster : TYPE
         DESCRIPTION.
 
-    Returnscc = ds.TEMP.attrs.crs# Set the CRS information obtained above
-    ds.rio.write_crs(cc.to_string(), inplace = True)
+    Returns
     -------
     gdf : TYPE
         DESCRIPTION.
@@ -134,7 +127,7 @@ def assign_silt_fraction(gdf, raster):
     
     
     gdf['silt_fraction'] = values
-    gdf.loc[:,'silt_fraction'] = gdf.loc[:,'silt_fraction'].mean()
+    gdf.loc[:,'silt_fraction'] = gdf.loc[:,'silt_fraction'].str[0]
     
     del lat, lat_idx, line, line_values,lon,lon_idx,point,row
     
@@ -206,67 +199,7 @@ def vehicular_weight(fleet_path: str,
     return df
 
 # %% FLOW AND SPEED DATA FROM TOMTOM
-
-# Reading geodataframe
-gdf = gpd.read_parquet(flow_path)
-#gdf.to_crs("epsg:4326", inplace=True)
-
-# Variables
-adt = gdf['average_daily_vehicle_count']
-
-
-
-# %% Road surface reclassification
-"""
-Classificação atual:
-    array(['asphalt', 'paving_stones', 'compacted', None, 'unpaved', 'sett',
-       'paved', 'cobblestone', 'metal', 'ground', 'gravel', 'dirt',
-       'concrete:plates'], dtype=object)
-
-Reclassificação:
-    paved = asphalt, paving_stones,sett, paved, cobblestone, metal,
-            concrete:plates
-    unpaved = compacted, None, unpaved, ground, gravel, dirt
-"""
-
-gdf.loc[(gdf['surface'] == 'asphalt') |
-        (gdf['surface'] == 'paving_stones') |
-        (gdf['surface'] == 'sett') |
-        (gdf['surface'] == 'cobblestone') |
-        (gdf['surface'] == 'metal') |
-        (gdf['surface'] == 'concrete:plates'),
-        'surface'] = 'paved'
-
-gdf.loc[(gdf['surface'] == 'compacted') |
-        (gdf['surface'] == 'None') |
-        (gdf['surface'] is None) |
-        (gdf['surface'] == 'ground') |
-        (gdf['surface'] == 'gravel') |
-        (gdf['surface'] == 'dirt'), 'surface'] = 'unpaved'
-
-# %% SILT LOADING
-
-""" Silt loading according to Average Daily Traffic (ADT) values from AP-42:
-    0     < ADT <   500 --> 0.6
-    500   < ADT <  5000 --> 0.2
-    5000  < ADT < 10000 --> 0.06
-    10000 < ADT < infinity --> 0.03
-"""
-# Assigning silt loading values by ADT
-gdf.loc[(adt < 500) &
-        (gdf['surface'] == 'paved'),'silt_loading'] = 0.6
-
-gdf.loc[(adt >= 500) &
-        (adt < 5000) &
-        (gdf['surface'] == 'paved'),'silt_loading'] = 0.3
-
-gdf.loc[(adt >= 5000) &
-        (adt < 10000) &
-        (gdf['surface'] == 'paved'),'silt_loading'] = 0.06
-
-gdf.loc[(adt >= 10000) &
-        (gdf['surface'] == 'paved'),'silt_loading'] = 0.03
-
+from road_preprocess import gdf
 
 # %% SOIL MOISTURE
 
@@ -279,9 +212,76 @@ xds = conv.brain_to_latlng(xds)
 # Locating soil moisture variable
 # SOIM1 = volumetric soil moisture in near-surface soil (m3.m-3)
 soil_moisture = xds['SOIM1']  
+del xds
 
-# Assigning soil moisture values to roads
-gdf = assign_soil_moisture(gdf, soil_moisture)
+# --------------------------
+# Pixels' centroids from soil_moisture
+lons = soil_moisture['lon'].values
+lats = soil_moisture['lat'].values
+
+# Calculates halfways between centroids
+lon_edges = np.concatenate([
+    [lons[0] - (lons[1] - lons[0]) / 2],
+    (lons[:-1] + lons[1:]) / 2,
+    [lons[-1] + (lons[-1] - lons[-2]) / 2]
+])
+
+lat_edges = np.concatenate([
+    [lats[0] - (lats[1] - lats[0]) / 2],
+    (lats[:-1] + lats[1:]) / 2,
+    [lats[-1] + (lats[-1] - lats[-2]) / 2]
+])
+
+# Creates grid cells based on the edges coordinates
+grid_cells = []
+i_indexes = []
+j_indexes = []
+for i in range(len(lat_edges) - 1):
+    for j in range(len(lon_edges) - 1):
+        cell = box(
+            lon_edges[j],
+            lat_edges[i],
+            lon_edges[j + 1],
+            lat_edges[i + 1]
+        )
+        grid_cells.append(cell)
+        i_indexes.append(i)
+        j_indexes.append(j)
+
+del i, j, cell
+
+# Turns it into a GeoDataFrame
+soil_grid = gpd.GeoDataFrame(geometry=grid_cells, crs="EPSG:4326")
+soil_grid['i_index'] = i_indexes
+soil_grid['j_index'] = j_indexes
+
+# Deleting variables
+del i_indexes, j_indexes
+
+# Get the soil moisture values as a 2D array
+values = soil_moisture.isel(TSTEP=0,LAY=0).values
+
+# Map the values to the grid cells
+soil_grid['value'] = [values[i, j] 
+                      for i, j 
+                      in zip(soil_grid['i_index'], soil_grid['j_index'])]
+
+# Drop the indices
+soil_grid = soil_grid.drop(columns=['i_index', 'j_index'])
+
+# -------------------------------------------------
+# Assigning soil moisture values to each road
+values = []
+for ii in range(gdf.shape[0]):
+        line = gdf.geometry.iloc[ii]
+        value = assigning_soil_moisture(line, soil_grid)
+        if value > 0 :
+            values.append(value)
+        else:
+            values.append(None)
+
+gdf['soil_moisture'] = values
+del value, values
 
 # %% SILT FRACTION
 
