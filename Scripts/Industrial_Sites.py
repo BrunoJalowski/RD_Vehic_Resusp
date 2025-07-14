@@ -19,7 +19,7 @@ import regex as re
 import fiona
 
 # %% PATH
-project_path = Path('/home/brunojalowski/Documentos/RD_Vehic_Resusp/dados_entrada')
+project_path = Path(r"C:\Users\bruno\Desktop\LCQAr\RD_Vehic_Resusp\dados_entrada")
 industrial_path = project_path /'Industrias'
 mining_path = industrial_path / 'MiningBR/BRASIL_FILTRADO.shp'
 cnpj_path = industrial_path / 'PessoasJuridicas'
@@ -278,15 +278,67 @@ del epsg, choices
 # landfill_gdf['buffer_5km'].plot(ax=ax, facecolor='none')
 # =============================================================================
 
-# %% CONCATENATING LANDFILL AND OTHER INDUSTRIAL ACTIVITIES
-industrial_gdf = pd.concat([industrial_gdf,landfill_gdf]).reset_index()
 
-del landfill_gdf
+
+
+
+# %% MINING SITES
+
+# Opening mining sites geodataframe
+mining_gdf = gpd.read_file(mining_path, engine='fiona')
+
+# %% Criando coluna do Código EPSG 
+
+# Pegando zona utm a partir da longitude
+mining_gdf.loc[:,'utm_zone'] = long_2_utm_zone(mining_gdf
+                                               .geometry
+                                               .centroid
+                                               .x) 
+
+# Atribuindo código EPSG SIRGAS 2000 projetado de acordo com a zona 
+# UTM e a latitude
+mining_gdf.loc[:,'EPSG'] = utm_zone_2_epsg(mining_gdf['utm_zone'],
+                                           mining_gdf.geometry
+                                           .centroid
+                                           .x)
+
+mining_gdf.drop(columns='utm_zone', inplace=True)
+
+# %% CREATING BUFFERS
+# Creating epsg dictionary
+choices = {'{}'.format(q): q for q in mining_gdf['EPSG'].unique()}
+
+# Creating sub dataframes and buffers
+for epsg in choices.keys():
+    
+     # Creating sub dataframe and setting respective crs
+     choices[epsg] = mining_gdf[mining_gdf['EPSG'] == epsg].to_crs(epsg)
+     
+     # Creating buffers in km and converting to WGS 84
+     choices[epsg]['buffer_2km'] = choices[epsg].buffer(2000).to_crs(4326)
+     choices[epsg]['buffer_5km'] = choices[epsg].buffer(5000).to_crs(4326)
+     
+     # Reprojecting geometry of each sub dataframe to WGS 84
+     choices[epsg] = choices[epsg].to_crs(4326)
+
+
+# Concatenating sub gds back to main gdf
+mining_gdf = gpd.GeoDataFrame(pd.concat([choices[df] for df in choices])) 
+
+del epsg, choices
+
+
+# %% CONCATENATING LANDFILL AND OTHER INDUSTRIAL ACTIVITIES
+industrial_gdf = pd.concat([industrial_gdf,landfill_gdf, mining_gdf]).reset_index()
+
+del landfill_gdf, mining_gdf
 
 industrial_gdf.loc[~pd.isna(industrial_gdf['Nome']),
                    'Razão Social'] = industrial_gdf['Nome']
+industrial_gdf.loc[~pd.isna(industrial_gdf['NOME']),
+                   'Razão Social'] = industrial_gdf['NOME']
 
-industrial_gdf.drop(columns='Nome', inplace=True)
+industrial_gdf.drop(columns=['Nome', 'NOME'], inplace=True)
 
 # =============================================================================
 # fig, ax = plt.subplots(figsize=(10,10))
@@ -295,10 +347,3 @@ industrial_gdf.drop(columns='Nome', inplace=True)
 # industrial_gdf['buffer_5km'].plot(ax=ax, facecolor='none')
 # =============================================================================
 
-
-# %% MINING SITES
-
-# Opening mining sites geodataframe
-mining_gdf = gpd.read_file(mining_path, engine='fiona')
-
-# 
