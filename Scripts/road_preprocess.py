@@ -23,8 +23,8 @@ project_path = Path('/home/brunojalowski/Documentos/RD_Vehic_Resusp/'
                     'dados_entrada')
 
 flow_path = (project_path /
-             'vehicle_count_daily-2025-07-09 00:00:00_to_2025-07-10 00:00:00'
-             '_rev1.parquet')
+             'vehicle_count_daily-2025-07-09 00:00:00_to_2025-07-10 '
+             '00:00:00_rev1.parquet')
 
 # %% FLOW AND SPEED DATA FROM TOMTOM
 

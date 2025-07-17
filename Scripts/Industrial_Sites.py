@@ -17,9 +17,11 @@ from long_2_utm_zone import long_2_utm_zone
 from utm_zone_2_epsg import utm_zone_2_epsg
 import regex as re
 import fiona
+from road_preprocess import gdf
 
 # %% PATH
-project_path = Path(r"C:\Users\bruno\Desktop\LCQAr\RD_Vehic_Resusp\dados_entrada")
+project_path = Path('/home/brunojalowski/Documentos/RD_Vehic_Resusp/dados_entrada')
+# "C:\Users\bruno\Desktop\LCQAr\RD_Vehic_Resusp\dados_entrada"
 industrial_path = project_path /'Industrias'
 mining_path = industrial_path / 'MiningBR/BRASIL_FILTRADO.shp'
 cnpj_path = industrial_path / 'PessoasJuridicas'
@@ -49,11 +51,59 @@ main_df.Longitude = (main_df['Longitude']
 # %% Filtrando
 
 """Filtrando:
-    - categorias industriais (1-16)
-    - em situação cadastral ativa
+    - Atividade industriais presentes na tabela de Default Silt Loading da
+    AP42:
+        3.1: Fabricação de aço e de produtos siderúrgicos
+        3.2: Produção de fundidos de ferro e aço, forjados, arames, 
+        relaminados com ou sem tratamento de superfície, inclusive 
+        galvanoplastia
+        3.11: Têmpera e cementação de aço, ecozimento de arames e tratamento 
+        de superfície
+        14.1: Produção de Cimento
+        14.2: Produção de Concreto
+        16.1: Beneficiamento, moagem, torrefação e fabricação de produtos
+        alimentares
+    - Em situação cadastral ativa
     """
-main_df = main_df.loc[(main_df['Código da categoria'] < 17) &
-                      (main_df['Situação cadastral'] == 'Ativa'), :]
+main_df = main_df.loc[(
+    (main_df['Código da categoria'] == 3) &
+    (main_df['Situação cadastral'] == 'Ativa') &
+    (main_df['Código da atividade'].isin([1, 2, 11]))
+    ) |
+    ((main_df['Código da categoria'] == 14) &
+     (main_df['Situação cadastral'] == 'Ativa') &
+     (main_df['Código da atividade'].isin([1, 2]))
+    ) |
+    ((main_df['Código da categoria'] == 16) &
+     (main_df['Situação cadastral'] == 'Ativa') &
+     (main_df['Código da atividade'] == 1)
+    ), :]
+
+# %% Assigning silt loading values for each category
+
+# Iron and Steel production
+main_df.loc[
+    (main_df['Código da categoria'] == 3) &
+    (main_df['Código da atividade'].isin([1, 2, 11])),
+    'silt_loading'] = 9.7
+
+# Asphalt batching
+main_df.loc[
+    (main_df['Código da categoria'] == 14) &
+    (main_df['Código da atividade'] == 1),
+    'silt_loading'] = 120
+
+# Concrete batching
+main_df.loc[
+    (main_df['Código da categoria'] == 14) &
+    (main_df['Código da atividade'] == 2),
+    'silt_loading'] = 12
+
+# Corn wet mills (applyed to all grains)
+main_df.loc[
+    (main_df['Código da categoria'] == 16) &
+    (main_df['Código da atividade'] == 1),
+    'silt_loading'] = 1.1
 
 # %% Creating geometry column
 main_gdf = gpd.GeoDataFrame(main_df,
@@ -89,8 +139,8 @@ for epsg in choices.keys():
      choices[epsg] = main_gdf[main_gdf['EPSG'] == epsg].to_crs(epsg)
      
      # Creating buffers in km and converting to WGS 84
-     choices[epsg]['buffer_2km'] = choices[epsg].buffer(2000).to_crs(4326)
-     choices[epsg]['buffer_5km'] = choices[epsg].buffer(5000).to_crs(4326)
+     choices[epsg]['buffer_ind'] = choices[epsg].buffer(500).to_crs(4326)
+     choices[epsg]['buffer_amort'] = choices[epsg].buffer(600).to_crs(4326)
      
      # Reprojecting geometry of each sub dataframe to WGS 84
      choices[epsg] = choices[epsg].to_crs(4326)
@@ -202,7 +252,7 @@ landfill_points = landfill.loc[(~pd.isna(landfill['GTR3203*']) &
                                ['CAD1000 ','GTR3202*','GTR3203*','GTR3204*']]
 del landfill
 
-# Limpando os dados de coordenadas
+# Formatting coordinates
 landfill_points.loc[:, 'GTR3203*'] = (landfill_points
                                       .loc[:, 'GTR3203*']
                                       .str.split()
@@ -213,7 +263,7 @@ landfill_points.loc[:, 'GTR3204*'] = (landfill_points
                                       .str.split()
                                       .str[-1])
 
-# Transformando em float
+# Turning coordinates to float
 landfill_points.loc[:, 'GTR3203*'] = (landfill_points
                                       .loc[:, 'GTR3203*']
                                       .astype(float))
@@ -222,32 +272,34 @@ landfill_points.loc[:, 'GTR3204*'] = (landfill_points
                                       .loc[:, 'GTR3204*']
                                       .astype(float))
 
-# Renomeando os códigos para os nomes mais sucintos
+# Renaming columns
 landfill_points = landfill_points.rename(columns={'CAD1000 ':'CNPJ',
                                                   'GTR3203*':'Latitude',
                                                   'GTR3204*':'Longitude',
                                                   'GTR3202*':'Nome'})
 
 #%%
-# Criando gdf de pontos por meio das coordenadas
+# Creating geodataframe from lon and lat columns
 landfill_gdf = (
     gpd.GeoDataFrame(landfill_points,
                      geometry = gpd.points_from_xy(landfill_points.Longitude,
                                                    landfill_points.Latitude),
                      crs="EPSG:4326")
     )
-# Resetando indice
+# Resetting index
 landfill_gdf = landfill_gdf.reset_index(drop=True)
 
-# %% Criando coluna do Código EPSG 
+del landfill_points 
 
-# Pegando zona utm a partir da longitude
+# %% Creating column with epsg code for each landfill
+
+# Getting utm zone using the longitude
 landfill_gdf.loc[:,'utm_zone'] = long_2_utm_zone(landfill_gdf['Longitude']) 
 
-# Atribuindo código EPSG SIRGAS 2000 projetado de acordo com a zona 
-# UTM e a latitude
+# Assigning EPSG SIRGAS 2000 code according to UTM zone and latitude
 landfill_gdf.loc[:,'EPSG'] = utm_zone_2_epsg(landfill_gdf['utm_zone'],
                                              landfill_gdf['Latitude'])
+
 landfill_gdf.drop(columns='utm_zone', inplace=True)
 
 # %% CREATING BUFFERS
@@ -261,8 +313,8 @@ for epsg in choices.keys():
      choices[epsg] = landfill_gdf[landfill_gdf['EPSG'] == epsg].to_crs(epsg)
      
      # Creating buffers in km and converting to WGS 84
-     choices[epsg]['buffer_2km'] = choices[epsg].buffer(2000).to_crs(4326)
-     choices[epsg]['buffer_5km'] = choices[epsg].buffer(5000).to_crs(4326)
+     choices[epsg]['buffer_ind'] = choices[epsg].buffer(500).to_crs(4326)
+     choices[epsg]['buffer_amort'] = choices[epsg].buffer(600).to_crs(4326)
      
      # Reprojecting geometry of each sub dataframe to WGS 84
      choices[epsg] = choices[epsg].to_crs(4326)
@@ -277,6 +329,11 @@ del epsg, choices
 # landfill_gdf['buffer_2km'].plot(ax=ax, facecolor='none')
 # landfill_gdf['buffer_5km'].plot(ax=ax, facecolor='none')
 # =============================================================================
+
+# %% Assigning silt loading value for the entire landfill gdf
+landfill_gdf['silt_loading'] = 7.4
+
+
 
 
 
@@ -315,8 +372,8 @@ for epsg in choices.keys():
      choices[epsg] = mining_gdf[mining_gdf['EPSG'] == epsg].to_crs(epsg)
      
      # Creating buffers in km and converting to WGS 84
-     choices[epsg]['buffer_2km'] = choices[epsg].buffer(2000).to_crs(4326)
-     choices[epsg]['buffer_5km'] = choices[epsg].buffer(5000).to_crs(4326)
+     choices[epsg]['buffer_ind'] = choices[epsg].buffer(500).to_crs(4326)
+     choices[epsg]['buffer_amort'] = choices[epsg].buffer(600).to_crs(4326)
      
      # Reprojecting geometry of each sub dataframe to WGS 84
      choices[epsg] = choices[epsg].to_crs(4326)
@@ -327,6 +384,10 @@ mining_gdf = gpd.GeoDataFrame(pd.concat([choices[df] for df in choices]))
 
 del epsg, choices
 
+#%% Assigning silt loading values to mining sites following the Quarry 
+# classification in AP42
+
+mining_gdf['silt_loading'] = 8.2
 
 # %% CONCATENATING LANDFILL AND OTHER INDUSTRIAL ACTIVITIES
 industrial_gdf = pd.concat([industrial_gdf,landfill_gdf, mining_gdf]).reset_index()
@@ -340,10 +401,69 @@ industrial_gdf.loc[~pd.isna(industrial_gdf['NOME']),
 
 industrial_gdf.drop(columns=['Nome', 'NOME'], inplace=True)
 
+#%% SAVING BUFFERS TO GEOPACKAGE
+buffer_ind = gpd.GeoDataFrame(data=industrial_gdf['silt_loading'],
+                              geometry=industrial_gdf['buffer_ind'])
+buffer_amort = gpd.GeoDataFrame(data=industrial_gdf['silt_loading'],
+                                geometry=industrial_gdf['buffer_amort'])
+
 # =============================================================================
 # fig, ax = plt.subplots(figsize=(10,10))
-# #industr/ial_gdf.plot(ax=ax)
-# industrial_gdf['buffer_2km'].plot(ax=ax, facecolor='none')
-# industrial_gdf['buffer_5km'].plot(ax=ax, facecolor='none')
+# buffer_ind.plot(ax=ax, facecolor='none')
+# buffer_amort.plot(ax=ax, facecolor='none')
 # =============================================================================
+
+# Saving to gpkg files
+buffer_ind.to_file(filename=industrial_path /'buffer_ind.gpkg',
+                   driver='GPKG')
+buffer_amort.to_file(filename=industrial_path /'buffer_amort.gpkg',
+                     driver='GPKG')
+
+#%% INTERSECTING BUFFERS 
+
+# Getting all roads for a single timestep
+roads = gdf.loc[:,['osm_id','silt_loading','geometry']]
+roads = roads.drop_duplicates(subset='osm_id').reset_index()
+
+# filtering with sjoin for intersection
+candidates_ind = gpd.sjoin(buffer_ind,
+                           roads,
+                           how='inner',
+                           predicate='intersects')
+
+geoms_for_intersect_01 = (buffer_ind
+                          .loc[candidates_ind.index]
+                          .reset_index(drop=False))
+
+geoms_for_intersect_02 = (roads
+                          .loc[candidates_ind['index_right']]
+                          .reset_index(drop=False))
+
+# Getting all roads that intersect with buffers 
+intersected_geom_ind = (geoms_for_intersect_01
+                        .geometry
+                        .intersection(geoms_for_intersect_02.union_all()))
+
+intersected_ind = geoms_for_intersect_02.copy()
+intersected_ind.geometry = intersected_geom_ind
+
+#%% Checking if it got only the intersections
+fig, ax = plt.subplots(2)
+minx, miny, maxx, maxy = gdf.total_bounds
+
+ax[0].set_xlim(minx-0.01, maxx+0.01)
+ax[0].set_ylim(miny-0.01, maxy+0.01)
+
+intersected_ind.plot(ax=ax[0],
+                     edgecolor='C0')
+buffer_ind.plot(ax=ax[0],
+                facecolor='none')
+
+ax[1].set_xlim(minx-0.01, maxx+0.01)
+ax[1].set_ylim(miny-0.01, maxy+0.01)
+roads.plot(ax=ax[1])
+buffer_ind.plot(ax=ax[1],
+                facecolor='none')
+
+# %% Assigning values for roads that intersect buffers
 
