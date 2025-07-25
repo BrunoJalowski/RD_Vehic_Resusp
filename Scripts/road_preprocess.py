@@ -29,8 +29,15 @@ flow_path = (project_path /
 # %% FLOW AND SPEED DATA FROM TOMTOM
 
 # Reading geodataframe
-gdf = gpd.read_parquet(flow_path)
-#gdf.to_crs("epsg:4326", inplace=True)
+gdf = (gpd
+       .read_parquet(path=flow_path)
+       .astype({'osm_id': int,
+                'vehicle_count': float,
+                'average_daily_vehicle_count': float,
+                'road_length': float,
+                'vkt_per_hour': float,
+                'surface': str,
+                'avg_traffic_level': float}))
 
 # Variables
 adt = gdf['average_daily_vehicle_count']
@@ -72,10 +79,10 @@ gdf.loc[(gdf['surface'] == 'compacted') |
     500   < ADT <  5000 --> 0.2
     5000  < ADT < 10000 --> 0.06
     10000 < ADT < infinity --> 0.03
-"""
+"""difference = geoms_for_intersect_02.difference(geoms_for_intersect_01)
 # Assigning silt loading values by ADT
 gdf.loc[(adt < 500) &
-        (gdf['surface'] == 'paved'),'silt_loading'] = 0.6
+        (gdf['surface'] == 'paved'),'silt_loading'] = difference = geoms_for_intersect_02.difference(geoms_for_intersect_01)0.6
 
 gdf.loc[(adt >= 500) &
         (adt < 5000) &
@@ -87,3 +94,4 @@ gdf.loc[(adt >= 5000) &
 
 gdf.loc[(adt >= 10000) &
         (gdf['surface'] == 'paved'),'silt_loading'] = 0.03
+

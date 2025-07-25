@@ -12,12 +12,10 @@ from pathlib import Path
 import glob
 import matplotlib.pyplot as plt
 import geopandas as gpd
-import math
 from long_2_utm_zone import long_2_utm_zone
 from utm_zone_2_epsg import utm_zone_2_epsg
-import regex as re
-import fiona
 from road_preprocess import gdf
+from trafficdata.utils.geometries import split_lines_vectorized
 
 # %% PATH
 project_path = Path('/home/brunojalowski/Documentos/RD_Vehic_Resusp/dados_entrada')
@@ -403,9 +401,9 @@ industrial_gdf.drop(columns=['Nome', 'NOME'], inplace=True)
 
 #%% SAVING BUFFERS TO GEOPACKAGE
 buffer_ind = gpd.GeoDataFrame(data=industrial_gdf['silt_loading'],
-                              geometry=industrial_gdf['buffer_ind'])
+                              geometry=industrial_gdf['buffer_ind'].boundary)
 buffer_amort = gpd.GeoDataFrame(data=industrial_gdf['silt_loading'],
-                                geometry=industrial_gdf['buffer_amort'])
+                                geometry=industrial_gdf['buffer_amort'].boundary)
 
 # =============================================================================
 # fig, ax = plt.subplots(figsize=(10,10))
@@ -419,7 +417,7 @@ buffer_ind.to_file(filename=industrial_path /'buffer_ind.gpkg',
 buffer_amort.to_file(filename=industrial_path /'buffer_amort.gpkg',
                      driver='GPKG')
 
-#%% INTERSECTING BUFFERS 
+#%% INTERSECTING BUFFERS  #FIXME
 
 # Getting all roads for a single timestep
 roads = gdf.loc[:,['osm_id','silt_loading','geometry']]
@@ -438,11 +436,11 @@ geoms_for_intersect_01 = (buffer_ind
 geoms_for_intersect_02 = (roads
                           .loc[candidates_ind['index_right']]
                           .reset_index(drop=False))
+del candidates_ind
 
 # Getting all roads that intersect with buffers 
 intersected_geom_ind = (geoms_for_intersect_01
-                        .geometry
-                        .intersection(geoms_for_intersect_02.union_all()))
+                        .intersection(geoms_for_intersect_02))
 
 intersected_ind = geoms_for_intersect_02.copy()
 intersected_ind.geometry = intersected_geom_ind
@@ -451,6 +449,7 @@ intersected_ind.geometry = intersected_geom_ind
 fig, ax = plt.subplots(2)
 minx, miny, maxx, maxy = gdf.total_bounds
 
+# Intersected segments
 ax[0].set_xlim(minx-0.01, maxx+0.01)
 ax[0].set_ylim(miny-0.01, maxy+0.01)
 
@@ -459,11 +458,20 @@ intersected_ind.plot(ax=ax[0],
 buffer_ind.plot(ax=ax[0],
                 facecolor='none')
 
+# All roads
 ax[1].set_xlim(minx-0.01, maxx+0.01)
 ax[1].set_ylim(miny-0.01, maxy+0.01)
 roads.plot(ax=ax[1])
 buffer_ind.plot(ax=ax[1],
                 facecolor='none')
 
-# %% Assigning values for roads that intersect buffers
+# %% Segmenting all roads with buffers
+roads = split_lines_vectorized(roads, buffer_amort)
+roads = split_lines_vectorized(roads, buffer_ind)
+
+# %% Assigning values to each fragment
+
+
+
+
 
