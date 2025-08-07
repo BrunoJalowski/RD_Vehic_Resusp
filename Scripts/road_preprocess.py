@@ -62,30 +62,5 @@ gdf.loc[(gdf['surface'] == 'compacted') |
         (gdf['surface'] == 'gravel') |
         (gdf['surface'] == 'dirt'), 'surface'] = 'unpaved'
 
-# =============================================================================
-# # %% SILT LOADING
-# 
-# """ Silt loading according to Average Daily Traffic (ADT) values from AP-42:
-#     0     < ADT <   500 --> 0.6
-#     500   < ADT <  5000 --> 0.2
-#     5000  < ADT < 10000 --> 0.06
-#     10000 < ADT < infinity --> 0.03
-# """
-# # Assigning silt loading values by ADT
-# gdf.loc[(adt < 500) &
-#         (gdf['surface'] == 'paved'),'silt_loading'] = 0.6
-# 
-# gdf.loc[(adt >= 500) &
-#         (adt < 5000) &
-#         (gdf['surface'] == 'paved'),'silt_loading'] = 0.3
-# 
-# gdf.loc[(adt >= 5000) &
-#         (adt < 10000) &
-#         (gdf['surface'] == 'paved'),'silt_loading'] = 0.06
-# 
-# gdf.loc[(adt >= 10000) &
-#         (gdf['surface'] == 'paved'),'silt_loading'] = 0.03
-# 
-# =============================================================================
 
-# %% ASSIGNING
+

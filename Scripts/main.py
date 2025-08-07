@@ -206,8 +206,10 @@ from Industrial_Sites import roads_template
 gdf = gdf.merge(roads_template, how='left', on='osm_id')
 
 # Dropping road geometry and setting segment geometry column as default
-gdf = gpd.GeoDataFrame(gdf, geometry='geometry_y')
-gdf = gdf.drop(columns=['geometry_x', 'geometry_y'])
+gdf = gdf.drop(columns=['geometry_x'])
+gdf = gdf.rename(columns={'geometry_y':'geometry'})
+gdf = gpd.GeoDataFrame(gdf, geometry='geometry')
+
 
 # Simplifying column names into variables
 adt = gdf['average_daily_vehicle_count']
@@ -253,6 +255,37 @@ gdf.loc[gdf['surface'] == 'paved', 'subcategory'] = 'paved'
 gdf.loc[(gdf['silt_loading'].notna()) &
         (gdf['surface'] == 'unpaved'), 'silt_loading'] = None
 
+
+# %% SILT FRACTION
+s = time.time()
+# Opening silt_fraction raster
+raster = rxr.open_rasterio(silt_fraction_path / 'mapbiomas-brazil-collection2'
+                           '-beta-000_010cm-granulometry_silt_percent-0000095'
+                           '232-0000063488.tif',
+                           band_as_variable=True)
+
+# Assigning CRS
+raster.rio.write_crs("epsg:4326", inplace=True)
+
+# Downscaling factor
+downscale_factor = 1/10
+    
+# new width and height
+new_width = raster.rio.width * downscale_factor
+new_height = raster.rio.height * downscale_factor
+    
+# Downscaling
+raster = raster.rio.reproject(raster.rio.crs, shape=(int(new_height),
+                                                     int(new_width)),
+                              resampling=Resampling.bilinear)
+
+# Assigning silt fraction values to unpaved roads
+gdf = assign_silt_fraction(gdf, raster)
+
+# Checking duration time
+silt_fraction_time = time.time() - s
+
+del new_height, new_width, downscale_factor, raster
 # %% SOIL MOISTURE
 s = time.time()
 
@@ -339,31 +372,6 @@ del value, values, ii
 # Checking duration time
 soil_moisture_time = time.time() - s
 
-# %% SILT FRACTION
-s = time.time()
-# Opening silt_fraction raster
-raster = rxr.open_rasterio(silt_fraction_path / 'mapbiomas-brazil-collection2-beta-000_010cm-granulometry_silt_percent-0000095232-0000063488.tif', band_as_variable=True)
-
-# Assigning CRS
-raster.rio.write_crs("epsg:4326", inplace=True)
-
-# Downscaling factor
-downscale_factor = 1/10
-    
-# new width and height
-new_width = raster.rio.width * downscale_factor
-new_height = raster.rio.height * downscale_factor
-    
-# Downscaling
-raster = raster.rio.reproject(raster.rio.crs, shape=(int(new_height),
-                                                     int(new_width)),
-                              resampling=Resampling.bilinear)
-
-# Assigning silt fraction values to unpaved roads
-gdf = assign_silt_fraction(gdf, raster)
-
-# Checking duration time
-silt_fraction_time = time.time() - s
 
 # %% VEHICULAR WEIGHT
 vehicular_weight = vehicular_weight(fleet_path)

@@ -8,7 +8,10 @@ Created on Fri Mar 21 11:46:24 2025
 from main import gdf, vehicular_weight
 import emission_factors as ef
 
-# %% EMISSÕES VIAS NÃO PAVIMENTADAS ACESSO PÚBLICO
+# %% EMISSIONS FROM UNPAVED INDUSTRIAL ROADS
+#FIXME
+
+# %% EMISSIONS FROM OPEN ACCESS PUBLIC ROADS
 # Dados iniciais via não pavimentada
 # ## PM2.5
 # Fator de emissão PM2.5 em lb/VMT

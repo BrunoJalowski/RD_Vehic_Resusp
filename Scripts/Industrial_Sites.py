@@ -435,6 +435,27 @@ buffer_amort.to_file(filename=industrial_path /'buffer_amort.gpkg',
                      driver='GPKG')
 
 del industrial_gdf
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 # %% Getting all roads for a single timestep
 roads = gdf.loc[:,['osm_id','geometry']]
 roads = roads.drop_duplicates(subset='osm_id').reset_index(drop=True)
@@ -455,6 +476,23 @@ roads_template = split_lines_vectorized(roads_template, buffer_ind_bound.explode
 """The roads_template variable will be used as the default layer for roads
 from this point on. All new road information will be assigned to this
 GeoDataFrame via osm_id"""
+
+
+# %% SEGMENTING ALL ROADS WITH BRAZILIAN MUNICIPALITIES'S BOUNDARIES
+
+# Reading municipality layer 
+cities_BR = gpd.read_file("/home/brunojalowski/Documentos/RD_Vehic_Resusp/"
+                          "dados_entrada/BR_Municipios_2024.shp")
+
+# Creating layer with boundaries
+cities_BR_bound = gpd.GeoDataFrame(data=cities_BR,
+                                   geometry=cities_BR.boundary)
+# Matching crs with roads_templates
+cities_BR_bound.to_crs(4326, inplace=True)
+cities_BR.to_crs(4326, inplace=True)
+
+# Splitting roads by municipality
+roads_template = split_lines_vectorized(roads_template, cities_BR_bound.explode())
 
 
 #%% Creating unique id for every road segment
@@ -620,3 +658,46 @@ del silt_loading_roads
 # =============================================================================
 
 del buffer_amort, buffer_amort_bound, buffer_ind, buffer_ind_bound
+
+# %% ASSIGNING MUNICIPALITY TO EACH ROAD
+
+# filtering with sjoin for intersection
+candidates = gpd.sjoin(cities_BR,
+                       roads_template,
+                       how='inner',
+                       predicate='intersects')
+
+geoms_for_intersect_01 = (cities_BR
+                          .loc[candidates.index]
+                          .reset_index(drop=False))
+
+geoms_for_intersect_02 = (roads_template
+                          .loc[candidates['index_right']]
+                          .reset_index(drop=False))
+del candidates
+
+# Getting all roads that intersect with buffers 
+intersected = geoms_for_intersect_01.intersection(geoms_for_intersect_02)
+
+# Filtering points from result
+roads_cities = intersected.loc[intersected
+                               .geometry
+                               .geom_type == 'LineString']
+
+roads_cities = geoms_for_intersect_02.loc[roads_cities.index]
+roads_cities['CD_MUN'] = (geoms_for_intersect_01['CD_MUN']
+                          .loc[intersected.index])
+
+roads_cities.geometry = intersected.loc[intersected
+                                        .geometry
+                                        .geom_type == 'LineString'].geometry
+
+# Assigning city names 
+roads_cities = roads_cities.set_index('index')
+roads_template['CD_MUN'] = (
+    roads_template.index
+    .map(roads_cities['CD_MUN'])
+)
+
+del roads_cities, intersected, intersected_roads, geoms_for_intersect_01
+del geoms_for_intersect_02, roads, cities_BR_bound
