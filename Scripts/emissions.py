@@ -9,9 +9,7 @@ from main import gdf, vehicular_weight
 import emission_factors as ef
 
 # %% EMISSÕES VIAS NÃO PAVIMENTADAS ACESSO PÚBLICO
-
 # Dados iniciais via não pavimentada
-
 # ## PM2.5
 # Fator de emissão PM2.5 em lb/VMT
 (
@@ -100,7 +98,7 @@ import emission_factors as ef
 # Dados iniciais
 weight = (
     vehicular_weight
-    .loc[vehicular_weight['MUNICIPIO'] == 'FLORIANOPOLIS', "average_weight"]
+    .loc[vehicular_weight['MUNICIPIO'] == 'FLORIANOPOLIS', "average_weight"] #FIXME
     .values[0]
 )
 

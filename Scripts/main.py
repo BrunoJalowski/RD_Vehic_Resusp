@@ -8,17 +8,15 @@ Created on Tue Feb 11 11:42:04 2025
 # %%
 import geopandas as gpd
 import pandas as pd
-from datetime import datetime
-import math
 import xarray as xr
 import netcdf4_conversions_v2 as conv
 import numpy as np
 from pathlib import Path
-import glob
 from rasterio.enums import Resampling
 import rioxarray as rxr
-import regex as re
 from shapely.geometry import box, LineString
+import time
+from vehicular_weight import vehicular_weight
 
 # %% Paths
 project_path = Path('/home/brunojalowski/Documentos/RD_Vehic_Resusp/'
@@ -112,7 +110,7 @@ def assign_silt_fraction(gdf, raster):
     
         if line.geom_type == 'LineString':
             line_values = []  
-            """For each LineString, returns the closest indexes and with them, 
+            """For each LineString, rIndustrial_Sites import roads_template as gdfeturns the closest indexes and with them, 
             the silt fraction values"""
             for point in line.coords:
                 lon, lat = point
@@ -201,7 +199,62 @@ def vehicular_weight(fleet_path: str,
 # %% FLOW AND SPEED DATA FROM TOMTOM
 from road_preprocess import gdf
 
+# %% INDUSTRIAL SITES AND SILT LOADING
+from Industrial_Sites import roads_template
+
+# Applying segmentation and silt loading values for every timestep
+gdf = gdf.merge(roads_template, how='left', on='osm_id')
+
+# Dropping road geometry and setting segment geometry column as default
+gdf = gpd.GeoDataFrame(gdf, geometry='geometry_y')
+gdf = gdf.drop(columns=['geometry_x', 'geometry_y'])
+
+# Simplifying column names into variables
+adt = gdf['average_daily_vehicle_count']
+
+# Silt loading for road segments outside buffers
+""" Silt loading according to Average Daily Traffic (ADT) values from AP-42:
+        0 < ADT <   500 --> 0.6
+      500 < ADT <  5000 --> 0.2
+     5000 < ADT < 10000 --> 0.06
+    10000 < ADT < infinity --> 0.03
+"""
+# Assigning silt loading values by ADT
+gdf.loc[(gdf['silt_loading'].isna()) &
+        (adt < 500) &
+        (gdf['surface'] == 'paved'),'silt_loading'] = 0.6
+
+gdf.loc[(gdf['silt_loading'].isna()) &
+        (adt >= 500) &
+        (adt < 5000) &
+        (gdf['surface'] == 'paved'),'silt_loading'] = 0.3
+
+gdf.loc[(gdf['silt_loading'].isna()) &
+        (adt >= 5000) &
+        (adt < 10000) &
+        (gdf['surface'] == 'paved'),'silt_loading'] = 0.06
+
+gdf.loc[(gdf['silt_loading'].isna()) &
+        (adt >= 10000) &
+        (gdf['surface'] == 'paved'),'silt_loading'] = 0.03
+
+
+# Subclassifying unpaved roads in industrial or open access
+gdf.loc[(gdf['silt_loading'].notna()) &
+        (gdf['surface'] == 'unpaved'), 'subcategory'] = 'industrial'
+
+gdf.loc[(gdf['silt_loading'].isna()) &
+        (gdf['surface'] == 'unpaved'), 'subcategory'] = 'open access'
+
+gdf.loc[gdf['surface'] == 'paved', 'subcategory'] = 'paved'
+
+
+# Removing silt loading values from unpaved segments inside industrial zones
+gdf.loc[(gdf['silt_loading'].notna()) &
+        (gdf['surface'] == 'unpaved'), 'silt_loading'] = None
+
 # %% SOIL MOISTURE
+s = time.time()
 
 # Opening MCIP dataset
 xds = xr.open_mfdataset(soil_moisture_path)
@@ -281,10 +334,13 @@ for ii in range(gdf.shape[0]):
             values.append(None)
 
 gdf['soil_moisture'] = values
-del value, values
+del value, values, ii
+
+# Checking duration time
+soil_moisture_time = time.time() - s
 
 # %% SILT FRACTION
-
+s = time.time()
 # Opening silt_fraction raster
 raster = rxr.open_rasterio(silt_fraction_path / 'mapbiomas-brazil-collection2-beta-000_010cm-granulometry_silt_percent-0000095232-0000063488.tif', band_as_variable=True)
 
@@ -305,6 +361,9 @@ raster = raster.rio.reproject(raster.rio.crs, shape=(int(new_height),
 
 # Assigning silt fraction values to unpaved roads
 gdf = assign_silt_fraction(gdf, raster)
+
+# Checking duration time
+silt_fraction_time = time.time() - s
 
 # %% VEHICULAR WEIGHT
 vehicular_weight = vehicular_weight(fleet_path)

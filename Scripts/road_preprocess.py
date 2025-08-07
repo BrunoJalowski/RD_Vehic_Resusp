@@ -6,17 +6,7 @@ Created on Tue Jul  8 12:30:38 2025
 @author: brunojalowski
 """
 import geopandas as gpd
-import pandas as pd
-from datetime import datetime
-import math
-import xarray as xr
-import netcdf4_conversions_v2 as conv
-import numpy as np
 from pathlib import Path
-import glob
-from rasterio.enums import Resampling
-import rioxarray as rxr
-import regex as re
 
 # %% PATHS
 project_path = Path('/home/brunojalowski/Documentos/RD_Vehic_Resusp/'
@@ -39,9 +29,9 @@ gdf = (gpd
                 'surface': str,
                 'avg_traffic_level': float}))
 
-# Variables
-adt = gdf['average_daily_vehicle_count']
-
+# Removing datetime column as index
+gdf.reset_index(drop=False,
+                inplace=True)
 
 
 # %% Road surface reclassification
@@ -72,26 +62,30 @@ gdf.loc[(gdf['surface'] == 'compacted') |
         (gdf['surface'] == 'gravel') |
         (gdf['surface'] == 'dirt'), 'surface'] = 'unpaved'
 
-# %% SILT LOADING
+# =============================================================================
+# # %% SILT LOADING
+# 
+# """ Silt loading according to Average Daily Traffic (ADT) values from AP-42:
+#     0     < ADT <   500 --> 0.6
+#     500   < ADT <  5000 --> 0.2
+#     5000  < ADT < 10000 --> 0.06
+#     10000 < ADT < infinity --> 0.03
+# """
+# # Assigning silt loading values by ADT
+# gdf.loc[(adt < 500) &
+#         (gdf['surface'] == 'paved'),'silt_loading'] = 0.6
+# 
+# gdf.loc[(adt >= 500) &
+#         (adt < 5000) &
+#         (gdf['surface'] == 'paved'),'silt_loading'] = 0.3
+# 
+# gdf.loc[(adt >= 5000) &
+#         (adt < 10000) &
+#         (gdf['surface'] == 'paved'),'silt_loading'] = 0.06
+# 
+# gdf.loc[(adt >= 10000) &
+#         (gdf['surface'] == 'paved'),'silt_loading'] = 0.03
+# 
+# =============================================================================
 
-""" Silt loading according to Average Daily Traffic (ADT) values from AP-42:
-    0     < ADT <   500 --> 0.6
-    500   < ADT <  5000 --> 0.2
-    5000  < ADT < 10000 --> 0.06
-    10000 < ADT < infinity --> 0.03
-"""difference = geoms_for_intersect_02.difference(geoms_for_intersect_01)
-# Assigning silt loading values by ADT
-gdf.loc[(adt < 500) &
-        (gdf['surface'] == 'paved'),'silt_loading'] = difference = geoms_for_intersect_02.difference(geoms_for_intersect_01)0.6
-
-gdf.loc[(adt >= 500) &
-        (adt < 5000) &
-        (gdf['surface'] == 'paved'),'silt_loading'] = 0.3
-
-gdf.loc[(adt >= 5000) &
-        (adt < 10000) &
-        (gdf['surface'] == 'paved'),'silt_loading'] = 0.06
-
-gdf.loc[(adt >= 10000) &
-        (gdf['surface'] == 'paved'),'silt_loading'] = 0.03
-
+# %% ASSIGNING

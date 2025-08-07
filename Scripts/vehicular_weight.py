@@ -103,11 +103,11 @@ def vehicular_weight(fleet_path: str,
 
     # Reclassifying vehicles
     df['light_duty'] = df.loc[:, ['AUTOMOVEL',
-                             'BONDE',
-                             'CAMINHONETE',
-                             'CAMIONETA',
-                             'UTILITARIO',
-                             'OUTROS']].sum(1)
+                                  'BONDE',
+                                  'CAMINHONETE',
+                                  'CAMIONETA',
+                                  'UTILITARIO',
+                                  'OUTROS']].sum(1)
 
     df['motorcycles'] = df.loc[:, ['CICLOMOTOR',
                                     'MOTOCICLETA',
@@ -117,14 +117,14 @@ def vehicular_weight(fleet_path: str,
                                     'TRICICLO']].sum(1)
 
     df['heavy_duty'] = df.loc[:, ['CAMINHAO',
-                               'CAMINHAO TRATOR',
-                               'CHASSI PLATAF',
-                               'MICRO-ONIBUS',
-                               'ONIBUS',
-                               'REBOQUE',
-                               'SEMI-REBOQUE',
-                               'TRATOR ESTEI',
-                               'TRATOR RODAS']].sum(1)
+                                  'CAMINHAO TRATOR',
+                                  'CHASSI PLATAF',
+                                  'MICRO-ONIBUS',
+                                  'ONIBUS',
+                                  'REBOQUE',
+                                  'SEMI-REBOQUE',
+                                  'TRATOR ESTEI',
+                                  'TRATOR RODAS']].sum(1)
 
         # Calculating mean_weight for each city
     df['average_weight'] = ((df.loc[:, 'light_duty'] * light_duty_weight +
