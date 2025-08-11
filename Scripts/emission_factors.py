@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 
 "EMISSION FACTOR FOR PAVED ROADS"
 
@@ -194,7 +195,7 @@ def unpaved_rainfall_correction(emission_factor: float,
 "lb/VMT to g/VKT CONVERSION"
 
 
-def lbvmt_to_gvkt(lbvmt: float|int) -> float:
+def lbvmt_to_gvkt(lbvmt: float|int|np.ndarray) -> float:
     """
     Converts value in lb/VMT (pounds per vehicle mile traveled) to g/VKT 
     (grams per vehicle kilometer traveled). Commonly applied to emission 
@@ -202,12 +203,12 @@ def lbvmt_to_gvkt(lbvmt: float|int) -> float:
     
     Parameters
     ----------
-    lbvmt : float | int
+    lbvmt : float | int | np.ndarray
         value in lb/VMT
 
     Returns
     -------
-    float
+    float | np.array
         Value in g/VKT
 
     """

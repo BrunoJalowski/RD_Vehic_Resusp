@@ -374,7 +374,7 @@ soil_moisture_time = time.time() - s
 
 
 # %% VEHICULAR WEIGHT
-vehicular_weight = vehicular_weight(fleet_path)
+mean_vehicular_weight = vehicular_weight(fleet_path)
 
 
 #%%

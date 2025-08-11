@@ -10,6 +10,7 @@ import pandas as pd
 import geopandas as gpd
 import numpy as np
 import unidecode
+import regex as re
 
 path = '/home/brunojalowski/Documentos/RD_Vehic_Resusp/dados_entrada'
 filename = f'{path}/FrotapormunicipioetipoDezembro2024.xlsx'
@@ -126,10 +127,19 @@ def vehicular_weight(fleet_path: str,
                                   'TRATOR ESTEI',
                                   'TRATOR RODAS']].sum(1)
 
-        # Calculating mean_weight for each city
+    # Calculating mean_weight for each city
     df['average_weight'] = ((df.loc[:, 'light_duty'] * light_duty_weight +
                              df.loc[:, 'motorcycles'] * motorcycle_weight +
                              df.loc[:, 'heavy_duty'] * heavy_duty_weight) /
                             df.loc[:, 'TOTAL'])
+    
+    # Removing external spaces
+    df['MUNICIPIO'] = df['MUNICIPIO'].str.strip()
+    # Removing internal spaces
+    df['MUNICIPIO'] = df['MUNICIPIO'].str.replace(' ', '', regex=False)
+    # Removing non-ASCII characters
+    df['MUNICIPIO'] = df['MUNICIPIO'].str.replace(r"[\'\-]", "", regex=True)
+    
+
 
     return df
