@@ -131,76 +131,12 @@ def assign_silt_fraction(gdf, raster):
     
     return gdf
 
-# VEHICULAR WEIGHT
-def vehicular_weight(fleet_path: str,
-                     light_duty_weight = 1.1485,
-                     heavy_duty_weight = 16.0,
-                     motorcycle_weight = 0.128):
-    """
-    This function calculates de average vehicular weight for each city based 
-    on fleet composition and median weight for each vehicle category
-
-    Parameters
-    ----------
-    fleet_path : str
-        FLEET COMPOSITION EXCEL SPREADSHEET FOR THE MUNICIPALITY.
-    lightduty_weight : int or float, optional
-        ESTIMATED LIGHT-DUTY FLEET MEDIAN WEIGHT IN TONS.
-        The default is 1.1485.
-    heavyduty_weight : int or float, optional
-        ESTIMATED HEAVY-DUTY FLEET MEDIAN WEIGHT IN TONS.
-        The default is 16.0.
-    motorcycle_weight : int or float, optional
-        ESTIMATED HEAVY-DUTY FLEET MEDIAN WEIGHT IN TONS.
-        The default is 0.128.
-
-    Returns
-    -------
-    df : TYPE
-        DESCRIPTION.
-
-    """
-    # Reading file containing vehicle fleet
-    df = pd.read_excel(fleet_path, skiprows=3)
-
-    # Reclassifying vehicles
-    df['light_duty'] = df.loc[:, ['AUTOMOVEL',
-                             'BONDE',
-                             'CAMINHONETE',
-                             'CAMIONETA',
-                             'UTILITARIO',
-                             'OUTROS']].sum(1)
-
-    df['motorcycles'] = df.loc[:, ['CICLOMOTOR',
-                                    'MOTOCICLETA',
-                                    'MOTONETA',
-                                    'QUADRICICLO',
-                                    'SIDE-CAR',
-                                    'TRICICLO']].sum(1)
-
-    df['heavy_duty'] = df.loc[:, ['CAMINHAO',
-                               'CAMINHAO TRATOR',
-                               'CHASSI PLATAF',
-                               'MICRO-ONIBUS',
-                               'ONIBUS',
-                               'REBOQUE',
-                               'SEMI-REBOQUE',
-                               'TRATOR ESTEI',
-                               'TRATOR RODAS']].sum(1)
-
-        # Calculating mean_weight for each city
-    df['average_weight'] = ((df.loc[:, 'light_duty'] * light_duty_weight +
-                             df.loc[:, 'motorcycles'] * motorcycle_weight +
-                             df.loc[:, 'heavy_duty'] * heavy_duty_weight) /
-                            df.loc[:, 'TOTAL'])
-
-    return df
 
 # %% FLOW AND SPEED DATA FROM TOMTOM
 from road_preprocess import gdf
 
 # %% INDUSTRIAL SITES AND SILT LOADING
-from Industrial_Sites import roads_template
+from road_segments import roads_template
 
 # Applying segmentation and silt loading values for every timestep
 gdf = gdf.merge(roads_template, how='left', on='osm_id')
@@ -373,8 +309,8 @@ del value, values, ii
 soil_moisture_time = time.time() - s
 
 
-# %% VEHICULAR WEIGHT
-mean_vehicular_weight = vehicular_weight(fleet_path)
+# =============================================================================
+# # %% VEHICULAR WEIGHT
+# mean_vehicular_weight = vehicular_weight(fleet_path)
+# =============================================================================
 
-
-#%%

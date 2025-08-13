@@ -5,15 +5,17 @@ Created on Fri Mar 21 11:46:24 2025
 
 @author: brunojalowski
 """
-from main import gdf, vehicular_weight
+from main import gdf
 import emission_factors as ef
 
 # Dados iniciais
-weight = (
-    vehicular_weight
-    .loc[vehicular_weight['MUNICIPIO'] == 'FLORIANOPOLIS', "average_weight"] #FIXME
-    .values[0]
-)
+# =============================================================================
+# weight = (
+#     gdf
+#     .loc[gdf['MUNICIPIO'] == 'FLORIANOPOLIS', "average_weight"] #FIXME
+#     .values[0]
+# )
+# =============================================================================
 
 # =============================================================================
 # # %% EMISSIONS FROM UNPAVED INDUSTRIAL ROADS
@@ -239,7 +241,7 @@ weight = (
         (gdf['subcategory'] == 'industrial'),'EF25']
 ) = ef.emission_unpaved_industrial(2.5, 
                                    gdf.loc[:, 'silt_fraction'],
-                                   weight)
+                                   gdf.loc[:, 'average_weight'])
 
 # Conversion from lb/VMT to g/VKT
 (
@@ -275,7 +277,7 @@ weight = (
     gdf.loc[gdf['surface'] == 'paved', 'EF25']
 ) = ef.emission_paved_roads(2.5,
                             gdf.loc[:, 'silt_loading'],
-                            weight)
+                            gdf.loc[:, 'average_weight'])
                             
 ## Correção da emissão pela pluviosidade --------------------------
 # Unpaved
@@ -301,7 +303,7 @@ gdf.loc[:, '25_emission'] = (gdf.loc[:,'vkt_per_hour'] *
         (gdf['subcategory'] == 'industrial'),'EF10']
 ) = ef.emission_unpaved_industrial(10, 
                                    gdf.loc[:, 'silt_fraction'],
-                                   weight)
+                                   gdf.loc[:, 'average_weight'])
 
 # Conversion from lb/VMT to g/VKT
 (
@@ -337,7 +339,7 @@ gdf.loc[:, '25_emission'] = (gdf.loc[:,'vkt_per_hour'] *
     gdf.loc[gdf['surface'] == 'paved', 'EF10']
 ) = ef.emission_paved_roads(10,
                             gdf.loc[:, 'silt_loading'],
-                            weight)
+                            gdf.loc[:, 'average_weight'])
                      
                             
 # Correção da emissão pela pluviosidade --------------------------
@@ -364,7 +366,7 @@ gdf.loc[:, '10_emission'] = (gdf.loc[:,'vkt_per_hour'] *
         (gdf['subcategory'] == 'industrial'),'EF30']
 ) = ef.emission_unpaved_industrial(30, 
                                    gdf.loc[:, 'silt_fraction'],
-                                   weight)
+                                   gdf.loc[:, 'average_weight'])
 
 # Conversion from lb/VMT to g/VKT
 (
@@ -401,7 +403,7 @@ gdf.loc[:, '10_emission'] = (gdf.loc[:,'vkt_per_hour'] *
     gdf.loc[gdf['surface'] == 'paved', 'EF30']
 ) = ef.emission_paved_roads(30,
                             gdf.loc[:, 'silt_loading'],
-                            weight)
+                            gdf.loc[:, 'average_weight'])
                             
 # Correção da emissão pela pluviosidade --------------------------
 # Unpaved
