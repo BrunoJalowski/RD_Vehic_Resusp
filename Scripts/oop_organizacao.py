@@ -96,8 +96,16 @@ class RoadDataset:
                                    'avg_traffic_level': float})
                           .reset_index(drop=False)
                           )
+
+
+class RessuspensionModel:
+    def __init__(self):
         
-    def classify_pavement(self):
+        self.__classify_pavement()
+        self.__assign_soil_moisture(soil_moisture_grid)
+        
+        
+    def __classify_pavement(self):
         self.dataframe.loc[(self.dataframe['surface'] == 'asphalt') |
                            (self.dataframe['surface'] == 'paving_stones') |
                            (self.dataframe['surface'] == 'sett') |
@@ -113,7 +121,8 @@ class RoadDataset:
                            (self.dataframe['surface'] == 'gravel') |
                            (self.dataframe['surface'] == 'dirt'), 'surface'] = 'unpaved'
     
-    def assign_soil_moisture(self, soil_moisture_grid):
+    
+    def __assign_soil_moisture(self, soil_moisture_grid):
         values = []
         for ii in range(self.dataframe.shape[0]):
                 line = self.dataframe.geometry.iloc[ii]
@@ -139,9 +148,9 @@ class NetCDF:
         self.dataset = xr.open_mfdataset(file_path, engine='netcdf4')
         self.dataset = conv.brain_to_latlng(self.dataset)
         self.dataset = self.dataset[str(variable)]
+        self.__create_vector_grid()
     
-    
-    def create_vector_grid(self):
+    def __create_vector_grid(self):
         # Pixels' centroids from soil_moisture
         lons = self.dataset['lon'].values
         lats = self.dataset['lat'].values
