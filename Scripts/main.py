@@ -19,8 +19,9 @@ import time
 from vehicular_weight import vehicular_weight
 
 # %% Paths
-project_path = Path('/home/brunojalowski/Documentos/RD_Vehic_Resusp/'
-                    'dados_entrada')
+#project_path = Path('/home/brunojalowski/Documentos/RD_Vehic_Resusp/dados_entrada')
+project_path = Path(r"C:\Users\bruno\Desktop\LCQAr\RD_Vehic_Resusp\dados_entrada")
+
 soil_moisture_path = (project_path /
                       'Soil Moisture/METCRO2D_BR_20km_2023-02-01.nc')
 silt_fraction_path = (project_path /
