@@ -434,7 +434,7 @@ buffer_ind.to_file(filename=industrial_path /'buffer_ind.gpkg',
 buffer_amort.to_file(filename=industrial_path /'buffer_amort.gpkg',
                      driver='GPKG')
 
-del industrial_gdf
+#del industrial_gdf
 
 
 

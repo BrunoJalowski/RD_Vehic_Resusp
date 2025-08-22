@@ -23,9 +23,9 @@ roads = roads.drop_duplicates(subset='osm_id').reset_index(drop=True)
 
 # %% Segmenting all roads with buffers
 buffer_ind_bound = gpd.GeoDataFrame(data=buffer_ind['silt_loading'],
-                              geometry=buffer_ind.boundary)
+                                    geometry=buffer_ind.boundary)
 buffer_amort_bound = gpd.GeoDataFrame(data=buffer_amort['silt_loading'],
-                                geometry=buffer_amort.boundary)
+                                      geometry=buffer_amort.boundary)
 
 # Splitting roads by wider buffers
 roads_template = split_lines_vectorized(roads, buffer_amort_bound.explode())
