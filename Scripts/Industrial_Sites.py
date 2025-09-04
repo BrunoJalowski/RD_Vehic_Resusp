@@ -434,11 +434,10 @@ buffer_ind.to_file(filename=industrial_path /'buffer_ind.gpkg',
 buffer_amort.to_file(filename=industrial_path /'buffer_amort.gpkg',
                      driver='GPKG')
 
-#del industrial_gdf
 
-
-
-
+industrial_gdf.iloc[:,1:17].to_file(filename=industrial_path /
+                                    'industrial_sites_20250902.gpkg',
+                                    driver='GPKG')
 
 
 
