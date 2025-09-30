@@ -18,14 +18,13 @@ from shapely.geometry import box, LineString
 import time
 from vehicular_weight import vehicular_weight
 
-# %% Paths
-#project_path = Path('/home/brunojalowski/Documentos/RD_Vehic_Resusp/dados_entrada')
-project_path = Path(r"C:\Users\bruno\Desktop\LCQAr\RD_Vehic_Resusp\dados_entrada")
+# %% Paths ===================================================================
+project_path = Path('/home/brunojalowski/Documentos/RD_Vehic_Resusp/dados_entrada')
+#project_path = Path(r"C:\Users\bruno\Desktop\LCQAr\RD_Vehic_Resusp\dados_entrada")
 
 soil_moisture_path = (project_path /
                       'Soil Moisture/METCRO2D_BR_20km_2023-02-01.nc')
-silt_fraction_path = (project_path /
-                      'Silt_Fraction')
+silt_fraction_path = project_path / 'Silt_Fraction'
 flow_path = (project_path /
              'vehicle_count_daily-2025-07-09 00:00:00_to_2025-07-10 00:00:00'
              '_rev1.parquet')
@@ -33,9 +32,9 @@ flow_path = (project_path /
 fleet_path = ('/home/brunojalowski/Documentos/RD_Vehic_Resusp/dados_entrada/'
               'FrotapormunicipioetipoDezembro2024.xlsx')
 
-# %% FUNCTIONS
+# %% FUNCTIONS ===============================================================
 
-# SOIL MOISTURE
+# SOIL MOISTURE ==============================================================
 def assigning_soil_moisture(line: LineString,
                             grid: gpd.GeoDataFrame) -> float:
     """
@@ -86,7 +85,7 @@ def assigning_soil_moisture(line: LineString,
     return weighted_average
 
 
-# SILT FRACTION
+# SILT FRACTION ===============================================================
 def assign_silt_fraction(gdf, raster):
     """
     Assigns silt fraction values for each point of each linestring
@@ -111,8 +110,8 @@ def assign_silt_fraction(gdf, raster):
     
         if line.geom_type == 'LineString':
             line_values = []  
-            """For each LineString, rIndustrial_Sites import roads_template as gdfeturns the closest indexes and with them, 
-            the silt fraction values"""
+            """For each LineString, rIndustrial_Sites import roads_template as 
+            gdfeturns the closest indexes and with them, the silt fraction values"""
             for point in line.coords:
                 lon, lat = point
                 lat_idx = np.abs(raster['y'] - lat).argmin()  
@@ -133,10 +132,10 @@ def assign_silt_fraction(gdf, raster):
     return gdf
 
 
-# %% FLOW AND SPEED DATA FROM TOMTOM
+# %% FLOW AND SPEED DATA FROM TOMTOM ========================================
 from road_preprocess import gdf
 
-# %% INDUSTRIAL SITES AND SILT LOADING
+# %% INDUSTRIAL SITES AND SILT LOADING =======================================
 from road_segments import roads_template
 
 # Applying segmentation and silt loading values for every timestep
@@ -158,6 +157,7 @@ adt = gdf['average_daily_vehicle_count']
      5000 < ADT < 10000 --> 0.06
     10000 < ADT < infinity --> 0.03
 """
+
 # Assigning silt loading values by ADT
 gdf.loc[(gdf['silt_loading'].isna()) &
         (adt < 500) &
@@ -193,8 +193,8 @@ gdf.loc[(gdf['silt_loading'].notna()) &
         (gdf['surface'] == 'unpaved'), 'silt_loading'] = None
 
 
-# %% SILT FRACTION
-s = time.time()
+# %% SILT FRACTION ===========================================================
+
 # Opening silt_fraction raster
 raster = rxr.open_rasterio(silt_fraction_path / 'mapbiomas-brazil-collection2'
                            '-beta-000_010cm-granulometry_silt_percent-0000095'
@@ -204,28 +204,29 @@ raster = rxr.open_rasterio(silt_fraction_path / 'mapbiomas-brazil-collection2'
 # Assigning CRS
 raster.rio.write_crs("epsg:4326", inplace=True)
 
-# Downscaling factor
-downscale_factor = 1/10
-    
-# new width and height
-new_width = raster.rio.width * downscale_factor
-new_height = raster.rio.height * downscale_factor
-    
-# Downscaling
-raster = raster.rio.reproject(raster.rio.crs, shape=(int(new_height),
-                                                     int(new_width)),
-                              resampling=Resampling.bilinear)
+# =============================================================================
+# # Downscaling factor
+# downscale_factor = 1/10
+#     
+# # new width and height
+# new_width = raster.rio.width * downscale_factor
+# new_height = raster.rio.height * downscale_factor
+#     
+# # Downscaling
+# raster = raster.rio.reproject(raster.rio.crs, shape=(int(new_height),
+#                                                      int(new_width)),
+#                               resampling=Resampling.bilinear)
+# =============================================================================
 
 # Assigning silt fraction values to unpaved roads
 gdf = assign_silt_fraction(gdf, raster)
 
-# Checking duration time
-silt_fraction_time = time.time() - s
+# =============================================================================
+# del new_height, new_width, downscale_factor, raster
+# =============================================================================
 
-del new_height, new_width, downscale_factor, raster
+
 # %% SOIL MOISTURE
-s = time.time()
-
 # Opening MCIP dataset
 xds = xr.open_mfdataset(soil_moisture_path)
 
@@ -305,10 +306,6 @@ for ii in range(gdf.shape[0]):
 
 gdf['soil_moisture'] = values
 del value, values, ii
-
-# Checking duration time
-soil_moisture_time = time.time() - s
-
 
 # =============================================================================
 # # %% VEHICULAR WEIGHT

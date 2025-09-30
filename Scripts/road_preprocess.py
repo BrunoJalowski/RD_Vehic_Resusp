@@ -24,7 +24,6 @@ gdf = (gpd
        .astype({'osm_id': int,
                 'vehicle_count': float,
                 'average_daily_vehicle_count': float,
-                'road_length': float,
                 'vkt_per_hour': float,
                 'surface': str,
                 'avg_traffic_level': float}))

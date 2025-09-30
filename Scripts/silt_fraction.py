@@ -15,20 +15,34 @@ import rioxarray as rxr
 import glob
 from pathlib import Path
 import matplotlib.pyplot as plt
-from road_preprocess import gdf
 import xarray as xr
 from rasterio.enums import Resampling
 import numpy as np
 import geopandas as gpd
 from rasterio.features import shapes
+from rioxarray.merge import merge_arrays
+
+from road_preprocess import gdf
 
 #%% PATH
 project_path = Path('/home/brunojalowski/Documentos/RD_Vehic_Resusp/dados_entrada')
 silt_fraction_path = project_path /'Silt_Fraction'
 
 
-#%% Opening file
-files = glob.glob(str(silt_fraction_path / '*.tif'))
+# =============================================================================
+# #%% Opening file
+# files = glob.glob(str(silt_fraction_path / '*.tif'))
+# tiles = [rxr.open_rasterio(tile) for tile in files]
+# 
+# # Merge/Mosaic multiple rasters using merge_arrays method of rioxarray
+# merged_raster = merge_arrays(dataarrays = tiles,
+#                              res = (500, 500),
+#                              crs="EPSG:4326",
+#                              nodata = 0)
+#  
+# # Save Raster to disk
+# merged_raster.rio.to_raster("merged.tiff")
+# =============================================================================
 
 #%%
 silt_fraction = rxr.open_rasterio(silt_fraction_path / 'mapbiomas-brazil-collection2-beta-000_010cm-granulometry_silt_percent-0000095232-0000063488.tif', band_as_variable=True)
