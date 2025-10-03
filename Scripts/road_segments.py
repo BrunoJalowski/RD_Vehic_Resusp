@@ -6,15 +6,45 @@ Created on Mon Aug 11 14:46:07 2025
 @author: brunojalowski
 """
 import pandas as pd
-from Industrial_Sites import buffer_amort, buffer_ind
+#from Industrial_Sites import buffer_amort, buffer_ind
 import geopandas as gpd
-from road_preprocess import gdf
 from trafficdata.utils.geometries import split_lines_vectorized
 from vehicular_weight import vehicular_weight
+from pathlib import Path
+from reclassify_surface import reclassify_surface
+
 
 #%% Paths
+project_path = Path('/home/brunojalowski/Documentos/RD_Vehic_Resusp/dados_entrada')
 fleet_path = ('/home/brunojalowski/Documentos/RD_Vehic_Resusp/dados_entrada/'
               'FrotapormunicipioetipoDezembro2024.xlsx')
+
+buffer_ind_path = ('/home/brunojalowski/Documentos/RD_Vehic_Resusp/dados_'
+                   'entrada/Industrias/buffer_ind.gpkg')
+
+buffer_amort_path = ('/home/brunojalowski/Documentos/RD_Vehic_Resusp/dados_'
+                   'entrada/Industrias/buffer_amort.gpkg')
+flow_path = (project_path /
+             'vehicle_count_daily-2025-07-09 00:00:00_to_2025-07-10 00:00:00'
+             '_rev1.parquet')
+
+#%%
+# Reading geodataframe
+gdf = (gpd
+       .read_parquet(path=flow_path)
+       .astype({'osm_id': int,
+                'vehicle_count': float,
+                'average_daily_vehicle_count': float,
+                'vkt_per_hour': float,
+                'surface': str,
+                'avg_traffic_level': float}))
+
+# Removing datetime column as index
+gdf.reset_index(drop=False,
+                inplace=True)
+
+# %% Road Preprocessing ======================================================
+gdf = reclassify_surface(gdf)
 
 # %% Getting all roads for a single timestep
 roads = gdf.loc[:,['osm_id','geometry']]
@@ -22,6 +52,11 @@ roads = roads.drop_duplicates(subset='osm_id').reset_index(drop=True)
 
 
 # %% Segmenting all roads with buffers
+
+buffer_ind = gpd.read_file(buffer_ind_path)
+
+buffer_amort = gpd.read_file(buffer_amort_path)
+
 buffer_ind_bound = gpd.GeoDataFrame(data=buffer_ind['silt_loading'],
                                     geometry=buffer_ind.boundary)
 buffer_amort_bound = gpd.GeoDataFrame(data=buffer_amort['silt_loading'],

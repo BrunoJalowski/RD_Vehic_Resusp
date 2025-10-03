@@ -15,8 +15,14 @@ from pathlib import Path
 from rasterio.enums import Resampling
 import rioxarray as rxr
 from shapely.geometry import box, LineString
-import time
 from vehicular_weight import vehicular_weight
+import glob
+import shapely
+from rasterio.features import geometry_mask
+from reclassify_surface import reclassify_surface
+from silt_loading_by_adt import silt_loading_by_adt
+from assign_soil_moisture import assign_soil_moisture
+from assign_silt_fraction import assign_silt_fraction
 
 # %% Paths ===================================================================
 project_path = Path('/home/brunojalowski/Documentos/RD_Vehic_Resusp/dados_entrada')
@@ -32,108 +38,24 @@ flow_path = (project_path /
 fleet_path = ('/home/brunojalowski/Documentos/RD_Vehic_Resusp/dados_entrada/'
               'FrotapormunicipioetipoDezembro2024.xlsx')
 
-# %% FUNCTIONS ===============================================================
+# %% FLOW AND SPEED DATA FROM TOMTOM
 
-# SOIL MOISTURE ==============================================================
-def assigning_soil_moisture(line: LineString,
-                            grid: gpd.GeoDataFrame) -> float:
-    """
-    Calculates the average soil moisture value for each road segment weighted
-    by the length inside each pixel.
+# Reading geodataframe
+gdf = (gpd
+       .read_parquet(path=flow_path)
+       .astype({'osm_id': int,
+                'vehicle_count': float,
+                'average_daily_vehicle_count': float,
+                'vkt_per_hour': float,
+                'surface': str,
+                'avg_traffic_level': float}))
 
-    Parameters
-    ----------
-    line : LineString
-        ROAD SEGMENT FROM ROAD VECTOR DATAFRAME.
-    grid : gpd.GeoDataFrame
-        VECTOR GRID MADE FROM VECTORIZING RASTER/XARRAY.
+# Removing datetime column as index
+gdf.reset_index(drop=False,
+                inplace=True)
 
-    Returns
-    -------
-    float
-        WEIGHTED AVERAGE FOR SOIL MOISTURE.
-
-    """
-    
-    # Selects only cells that intersect with the linestring
-    intersected_cells = grid[grid.intersects(line)].copy()
-    if intersected_cells.empty:
-        return np.nan
-    
-    # Gets line total length
-    intersected_cells["total_length"] = (line
-                                         .length)
-    
-    # Gets length of line inside each cell
-    intersected_cells["intersected_length"] = (intersected_cells
-                                               .geometry
-                                               .intersection(line)
-                                               .length)
-    
-    # Weight factor
-    intersected_cells["weight_factor"] = (
-        intersected_cells["intersected_length"] /
-        intersected_cells["total_length"]
-        )
-    
-    # Soil moisture weighted average
-    weighted_average = (
-        intersected_cells['weight_factor'] *
-        intersected_cells['value']
-        ).sum()
-    
-    return weighted_average
-
-
-# SILT FRACTION ===============================================================
-def assign_silt_fraction(gdf, raster):
-    """
-    Assigns silt fraction values for each point of each linestring
-
-    Parameters
-    ----------
-    gdf : TYPE
-        DESCRIPTION.
-    raster : TYPE
-        DESCRIPTION.
-
-    Returns
-    -------
-    gdf : TYPE
-        DESCRIPTION.
-
-    """   
-    #Designando valores de teor de silte para cada trecho de via
-    values = []
-    for _, row in gdf.iterrows():
-        line = row['geometry']  
-    
-        if line.geom_type == 'LineString':
-            line_values = []  
-            """For each LineString, rIndustrial_Sites import roads_template as 
-            gdfeturns the closest indexes and with them, the silt fraction values"""
-            for point in line.coords:
-                lon, lat = point
-                lat_idx = np.abs(raster['y'] - lat).argmin()  
-                lon_idx = np.abs(raster['x'] - lon).argmin()  
-                value = raster['band_1'].values[lat_idx, lon_idx]  
-                line_values.append(value)
-            values.append(line_values)  
-    
-        else:
-            values.append(None)  
-    
-    
-    gdf['silt_fraction'] = values
-    gdf.loc[:,'silt_fraction'] = gdf.loc[:,'silt_fraction'].str[0]
-    
-    del lat, lat_idx, line, line_values,lon,lon_idx,point,row
-    
-    return gdf
-
-
-# %% FLOW AND SPEED DATA FROM TOMTOM ========================================
-from road_preprocess import gdf
+# %% Road Preprocessing ======================================================
+gdf = reclassify_surface(gdf)
 
 # %% INDUSTRIAL SITES AND SILT LOADING =======================================
 from road_segments import roads_template
@@ -146,36 +68,8 @@ gdf = gdf.drop(columns=['geometry_x'])
 gdf = gdf.rename(columns={'geometry_y':'geometry'})
 gdf = gpd.GeoDataFrame(gdf, geometry='geometry')
 
-
-# Simplifying column names into variables
-adt = gdf['average_daily_vehicle_count']
-
 # Silt loading for road segments outside buffers
-""" Silt loading according to Average Daily Traffic (ADT) values from AP-42:
-        0 < ADT <   500 --> 0.6
-      500 < ADT <  5000 --> 0.2
-     5000 < ADT < 10000 --> 0.06
-    10000 < ADT < infinity --> 0.03
-"""
-
-# Assigning silt loading values by ADT
-gdf.loc[(gdf['silt_loading'].isna()) &
-        (adt < 500) &
-        (gdf['surface'] == 'paved'),'silt_loading'] = 0.6
-
-gdf.loc[(gdf['silt_loading'].isna()) &
-        (adt >= 500) &
-        (adt < 5000) &
-        (gdf['surface'] == 'paved'),'silt_loading'] = 0.3
-
-gdf.loc[(gdf['silt_loading'].isna()) &
-        (adt >= 5000) &
-        (adt < 10000) &
-        (gdf['surface'] == 'paved'),'silt_loading'] = 0.06
-
-gdf.loc[(gdf['silt_loading'].isna()) &
-        (adt >= 10000) &
-        (gdf['surface'] == 'paved'),'silt_loading'] = 0.03
+gdf = silt_loading_by_adt(gdf)
 
 
 # Subclassifying unpaved roads in industrial or open access
@@ -194,37 +88,111 @@ gdf.loc[(gdf['silt_loading'].notna()) &
 
 
 # %% SILT FRACTION ===========================================================
+# Opening file
+files = glob.glob(str(silt_fraction_path / '*.tif'))
 
-# Opening silt_fraction raster
-raster = rxr.open_rasterio(silt_fraction_path / 'mapbiomas-brazil-collection2'
-                           '-beta-000_010cm-granulometry_silt_percent-0000095'
-                           '232-0000063488.tif',
-                           band_as_variable=True)
+for idx,file in enumerate(files):
+    # Opening raster
+    raster = rxr.open_rasterio(file, band_as_variable=True)  
+    # Assigning CRS
+    raster.rio.write_crs("epsg:4326", inplace=True)
+    break
+    mask = geometry_mask(
+        geometries=gdf.geometry,
+        transform=raster.band_1.rio.transform(),
+        invert=True, 
+        out_shape=raster.band_1.shape
+    )
+    
+    masked_raster = raster.band_1.where(mask)
 
-# Assigning CRS
-raster.rio.write_crs("epsg:4326", inplace=True)
+    pixel_values = masked_raster.values
+    
+    inside_pixels = pixel_values[~np.isnan(pixel_values)]
+    
+    break
 
 # =============================================================================
-# # Downscaling factor
-# downscale_factor = 1/10
+# grid_list = []
+# 
+# for idx,file in enumerate(files):
+#     # Opening raster
+#     raster = rxr.open_rasterio(file, ban
+# %% FUNCTIONS ===============================================================
+
+
+# SILT FRACTION ===============================================================
+
+
+d_as_variable=True)
 #     
-# # new width and height
-# new_width = raster.rio.width * downscale_factor
-# new_height = raster.rio.height * downscale_factor
+#     # Assigning CRS
+#     raster.rio.write_crs("epsg:4326", inplace=True)
 #     
-# # Downscaling
-# raster = raster.rio.reproject(raster.rio.crs, shape=(int(new_height),
-#                                                      int(new_width)),
-#                               resampling=Resampling.bilinear)
+#     # Getting raster bounds
+#     #raster_bbox = box(*raster.rio.bounds()).exterior.xy
+#     
+#     # Pixels' centroids
+#     lons = raster['x'].values
+#     lats = raster['y'].values
+#     
+#     # Calculates halfways between centroids
+#     lon_edges = np.concatenate([
+#         [lons[0] - (lons[1] - lons[0]) / 2],
+#         (lons[:-1] + lons[1:]) / 2,
+#         [lons[-1] + (lons[-1] - lons[-2]) / 2]
+#     ])
+# 
+#     lat_edges = np.concatenate([
+#         [lats[0] - (lats[1] - lats[0]) / 2],
+#         (lats[:-1] + lats[1:]) / 2,
+#         [lats[-1] + (lats[-1] - lats[-2]) / 2]
+#     ])
+# 
+#     # Creates grid cells based on the edges coordinates
+#     grid_cells = []
+#     i_indexes = []
+#     j_indexes = []
+#     for i in range(len(lat_edges) - 1):
+#         for j in range(len(lon_edges) - 1):
+#             cell = box(
+#                 lon_edges[j],
+#                 lat_edges[i],
+#                 lon_edges[j + 1],
+#                 lat_edges[i + 1]
+#             )
+#             grid_cells.append(cell)
+#             i_indexes.append(i)
+#             j_indexes.append(j)
+# 
+#     del i, j, cell
+#     
+#     # Turns it into a GeoDataFrame
+#     silt_grid = gpd.GeoDataFrame(geometry=grid_cells, crs="EPSG:4326")
+#     silt_grid['i_index'] = i_indexes
+#     silt_grid['j_index'] = j_indexes
+#     
+#     # Deleting variables
+#     del i_indexes, j_indexes
+# 
+#     # Get the soil moisture values as a 2D array
+#     values = raster.band_1.values
+# 
+#     # Map the values to the grid cells
+#     silt_grid['value'] = [values[i, j] 
+#                           for i, j 
+#                           in zip(silt_grid['i_index'], silt_grid['j_index'])]
+# 
+#     # Drop the indices
+#     silt_grid = silt_grid.drop(columns=['i_index', 'j_index'])
+#     
+#     grid_list.append(silt_grid)
+# 
+# silt_grid = pd.concat(grid_list)
 # =============================================================================
 
 # Assigning silt fraction values to unpaved roads
 gdf = assign_silt_fraction(gdf, raster)
-
-# =============================================================================
-# del new_height, new_width, downscale_factor, raster
-# =============================================================================
-
 
 # %% SOIL MOISTURE
 # Opening MCIP dataset
@@ -298,7 +266,7 @@ soil_grid = soil_grid.drop(columns=['i_index', 'j_index'])
 values = []
 for ii in range(gdf.shape[0]):
         line = gdf.geometry.iloc[ii]
-        value = assigning_soil_moisture(line, soil_grid)
+        value = assign_soil_moisture(line, soil_grid)
         if value > 0 :
             values.append(value)
         else:
