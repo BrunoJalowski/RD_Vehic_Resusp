@@ -12,7 +12,6 @@ import xarray as xr
 import netcdf4_conversions_v2 as conv
 import numpy as np
 from pathlib import Path
-from rasterio.enums import Resampling
 import rioxarray as rxr
 from shapely.geometry import box, LineString
 from vehicular_weight import vehicular_weight
@@ -112,19 +111,6 @@ for idx,file in enumerate(files):
     
     break
 
-# =============================================================================
-# grid_list = []
-# 
-# for idx,file in enumerate(files):
-#     # Opening raster
-#     raster = rxr.open_rasterio(file, ban
-# %% FUNCTIONS ===============================================================
-
-
-# SILT FRACTION ===============================================================
-
-
-d_as_variable=True)
 #     
 #     # Assigning CRS
 #     raster.rio.write_crs("epsg:4326", inplace=True)
@@ -274,9 +260,4 @@ for ii in range(gdf.shape[0]):
 
 gdf['soil_moisture'] = values
 del value, values, ii
-
-# =============================================================================
-# # %% VEHICULAR WEIGHT
-# mean_vehicular_weight = vehicular_weight(fleet_path)
-# =============================================================================
 
