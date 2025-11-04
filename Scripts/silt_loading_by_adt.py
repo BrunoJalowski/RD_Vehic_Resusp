@@ -23,7 +23,7 @@ def silt_loading_by_adt(gdf):
     '''
     
     
-    adt = gdf['average_daily_vehicle_count']
+    adt = gdf['adt']
     
     # Assigning silt loading values by ADT
     gdf.loc[(gdf['silt_loading'].isna()) &
